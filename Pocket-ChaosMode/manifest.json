@@ -1,0 +1,21 @@
+﻿{
+    "ManifestVersion": 2,
+    "AuthorName": "Pocket",
+    "Name": "Pocket-ChaosMode",
+    "DisplayName": "ChaosMode",
+    "Version": "1.2.0",
+    "Licence": "",
+    "WebsiteURL": "",
+    "Description": "The Ultimate Challenge Mode",
+    "GameVersion": "N/A",
+    "Dependencies": [ "bbepis-BepInExPack-3.0.0" ],
+    "OptionalDependencies": [],
+    "Incompatibilities": [],
+    "NetworkMode": "both",
+    "PackageType": "mod",
+    "InstallMode": "managed",
+    "Loaders": [
+        "bepinex"
+    ],
+    "ExtraData": {}
+}
