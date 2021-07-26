@@ -1,5 +1,5 @@
-# Chaos Mode
-A Risk of Rain 2 mod that adds, well... Chaos. Bosses and swarms spawn on a timer and items are randomly dispersed all the time. Recommended to be played on Monsoon. Only required by the host in multiplayer.
+# What's Chaos Mode?
+Chaos Mode is a Risk of Rain 2 mod that adds, well... Chaos. Bosses and swarms spawn on a timer and items are randomly dispersed all the time. Recommended to be played on Monsoon. Only required by the host in multiplayer.
 
 # Configuration
 All settings are intended to work at their default. Raising them will only increase the difficulty.
@@ -13,7 +13,7 @@ SwarmRate | 1 - 10 | 3 | Likelyhood of spawning low-tier swarms.
 AmbushRate | 1 - 10 | 5 | Likelyhood of spawning high-tier boss enemies.
 
 # Contact
-If you have questions or problems, you can leave them in the issues and I'll try to get back on them.
+If you have questions or problems, you can leave them in the issues and I'll try to get back to you.
 
 # Changelog
 1.0.0 Initial Release
