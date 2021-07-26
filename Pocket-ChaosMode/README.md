@@ -18,4 +18,4 @@ If you have questions or problems, you can leave them in the issues and I'll try
 # Changelog
 1.0.1 - Enemies can now spawn as Elites.  
 
-1.0.0 - Initial Release.  
+1.0.0 - Initial Release
