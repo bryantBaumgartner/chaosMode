@@ -5,7 +5,7 @@
     "DisplayName": "ChaosMode",
     "Version": "1.2.0",
     "Licence": "",
-    "WebsiteURL": "",
+    "WebsiteURL": "https://github.com/bryantBaumgartner/chaosMode",
     "Description": "The Ultimate Challenge Mode",
     "GameVersion": "N/A",
     "Dependencies": [ "bbepis-BepInExPack-3.0.0" ],
