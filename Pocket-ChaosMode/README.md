@@ -16,5 +16,5 @@ AmbushRate | 1 - 10 | 5 | Likelyhood of spawning high-tier boss enemies.
 If you have questions or problems, you can leave them in the issues and I'll try to get back to you.
 
 # Changelog
-1.0.1 Enemies can now spawn as Elites.
-1.0.0 Initial Release.
+1.0.1 Enemies can now spawn as Elites.  
+1.0.0 Initial Release.  
