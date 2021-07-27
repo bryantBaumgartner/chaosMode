@@ -2,3 +2,4 @@
 - Fix timer bug
 - Boss and Lunar items
 - Enemy limit
+- Stone Titan?
