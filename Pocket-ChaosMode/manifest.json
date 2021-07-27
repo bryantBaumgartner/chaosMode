@@ -1,21 +1,8 @@
-﻿{
-    "ManifestVersion": 2,
-    "AuthorName": "Pocket",
-    "Name": "Pocket-ChaosMode",
-    "DisplayName": "ChaosMode",
-    "Version": "1.2.0",
-    "Licence": "",
-    "WebsiteURL": "https://github.com/bryantBaumgartner/chaosMode",
-    "Description": "The Ultimate Challenge Mode",
-    "GameVersion": "N/A",
-    "Dependencies": [ "bbepis-BepInExPack-3.0.0" ],
-    "OptionalDependencies": [],
-    "Incompatibilities": [],
-    "NetworkMode": "both",
-    "PackageType": "mod",
-    "InstallMode": "managed",
-    "Loaders": [
-        "bepinex"
-    ],
-    "ExtraData": {}
+{
+    "author_name": "Pocket",
+    "name": "ChaosMode",
+    "version_number": "1.0.1",
+    "website_url": "https://github.com/bryantBaumgartner/chaosMode",
+    "description": "The Ultimate Challenge Mode",
+    "dependencies": [ "bbepis-BepInExPack-3.0.0" ]
 }
