@@ -13,7 +13,7 @@ SwarmRate | 1 - 10 | 3 | Likelyhood of spawning low-tier swarms.
 AmbushRate | 1 - 10 | 5 | Likelyhood of spawning high-tier boss enemies.
 
 # Contact
-If you have questions or problems, you can leave them in the [issues](https://github.com/bryantBaumgartner/chaosMode/issues) and I'll try to get back to you.
+If you have questions or problems, you can leave them in the [issues](https://github.com/bryantBaumgartner/chaosMode/issues) or reach out to me on Discord at `Pocket#4156`.
 
 # Changelog
 1.0.2 - Updated README, icon and release versions. No noticable gameplay changes.  
