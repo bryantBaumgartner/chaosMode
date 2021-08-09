@@ -1,5 +1,5 @@
-- Add EliteRate and fix elite issue
+X Add EliteRate and fix elite issue
 - Fix timer bug
 - Boss and Lunar items
-- Enemy limit
+X Enemy limit
 - Stone Titan?
