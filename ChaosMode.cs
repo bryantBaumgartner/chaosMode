@@ -225,7 +225,7 @@ namespace ChaosMode
         }
         public void SpawnEveryMinute()
         {
-            SpawnCardData[] normalEnemies = new SpawnCardData[] { Vagrant, BeetleQueen, GreaterWisp, RoboBallBoss, ClayBruiser, Parent, TitanPlains };
+            SpawnCardData[] normalEnemies = new SpawnCardData[] { Vagrant, BeetleQueen, GreaterWisp, RoboBallBoss, ClayBruiser, Parent };
             SpawnCardData[] heavyEnemies = new SpawnCardData[] { TitanGold, GraveKeeper, MagmaWorm, ArchWisp, Brother, Nullifier, ClayBoss, LunarGolem, LunarWisp, ImpBoss };
             SpawnCardData[] swarmEnemies = new SpawnCardData[] { Beetle, BeetleGuard, LesserWisp, GreaterWisp, Bell, Bison, Imp, Golem, Lemurian, Jellyfish, HermitCrab, Parent, Vulture };
 
@@ -235,7 +235,7 @@ namespace ChaosMode
             if (random.Next(0, Mathf.Clamp(10 - eventRate.Value, 2, 10)) == 0)
             {
                 //Event
-                List<IEnumerator> events = new List<IEnumerator>() { JellyfishEvent(), PurgeAllItems(), EliteParentEvent() };
+                List<IEnumerator> events = new List<IEnumerator>() { JellyfishEvent(), PurgeAllItems(), EliteParentEvent(), FinalEncounter() };
                 StartCoroutine(events[random.Next(0, events.Count)]);
             }
             else if (random.Next(0, 10 - Mathf.Clamp(swarmRate.Value, 0, 9)) != 0)
@@ -316,6 +316,34 @@ namespace ChaosMode
             {
                 StartCoroutine(Purge(player));
             }
+
+            yield return null;
+        }
+        public IEnumerator FinalEncounter()
+        {
+            Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+            {
+                baseToken = "<color=#bb0011>CHAOS MODE:\n<color=#ff0000>Final event!\nTime to face the king of nothing!</color>"
+            });
+
+            foreach (PlayerCharacterMasterController player in PlayerCharacterMasterController.instances)
+            {
+                StartCoroutine(Purge(player));
+            }
+
+            CharacterSpawnCard spawnCard = Resources.Load<CharacterSpawnCard>(Parent.location);
+            PlayerCharacterMasterController origin = PlayerCharacterMasterController.instances[0];
+            GameObject spawnedInstance = SpawnEnemy(spawnCard, origin.master.GetBody().transform.position).spawnedInstance;
+            spawnedInstance.GetComponent<CharacterMaster>().inventory.SetEquipmentIndex((EquipmentIndex)Fire);
+            StartCoroutine(CheckIfEnemyDied(spawnedInstance));
+
+            spawnedInstance = SpawnEnemy(spawnCard, origin.master.GetBody().transform.position).spawnedInstance;
+            spawnedInstance.GetComponent<CharacterMaster>().inventory.SetEquipmentIndex((EquipmentIndex)Ice);
+            StartCoroutine(CheckIfEnemyDied(spawnedInstance));
+
+            spawnedInstance = SpawnEnemy(spawnCard, origin.master.GetBody().transform.position).spawnedInstance;
+            spawnedInstance.GetComponent<CharacterMaster>().inventory.SetEquipmentIndex((EquipmentIndex)Lightning);
+            StartCoroutine(CheckIfEnemyDied(spawnedInstance));
 
             yield return null;
         }
