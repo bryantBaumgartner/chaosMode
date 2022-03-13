@@ -1,8 +1,9 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
+using RoR2;
 using EntityStates;
 using EntityStates.TimedChest;
-using RoR2;
+using RoR2.ExpansionManagement;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -12,16 +13,18 @@ using UnityEngine.SceneManagement;
 namespace ChaosMode
 {
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Pocket.ChaosMode", "ChaosMode", "1.0.2")]
+    [BepInPlugin("com.Pocket.ChaosMode", "ChaosMode", "2.0.4")]
     internal class ChaosMode : BaseUnityPlugin
     {
         public static ConfigEntry<int> chaosRate { get; set; }
         public static ConfigEntry<int> chaosSpeed { get; set; }
+        public static ConfigEntry<int> corruptRate { get; set; }
         public static ConfigEntry<int> swarmRate { get; set; }
         public static ConfigEntry<int> ambushRate { get; set; }
         public static ConfigEntry<int> eventRate { get; set; }
         public static ConfigEntry<int> maxEnemies { get; set; }
         public static ConfigEntry<int> eliteRate { get; set; }
+        public static ConfigEntry<int> purgeRate { get; set; }
 
         public void Awake()
         {
@@ -37,10 +40,16 @@ namespace ChaosMode
                 1,
                 "Raises the speed that Chaos Mode enemies spawn.\nEvery (61 - ChaosSpeed) seconds, or every minute when ChaosSpeed is 1."
             );
+            corruptRate = Config.Bind<int>(
+                "Item Settings",
+                "CorruptRate",
+                10,
+                "Raises the likelyhood that a corrupted item will be rolled.\nRoughly CorruptRate%. (Requires Survivors of The Void)"
+            );
             swarmRate = Config.Bind<int>(
                 "Spawn Settings",
                 "SwarmRate",
-                3,
+                35,
                 "Boosts the lilelyhood of enemies being spawned in swarms.\nRoughly a 1 in (10 - SwarmRate) chance."
             );
             ambushRate = Config.Bind<int>(
@@ -62,42 +71,39 @@ namespace ChaosMode
                 "Maximum amount of enemies that *CAN* be spawned at one time.\nDoes not factor enemies that have already been spawned.\nBe careful - this can cause game overload and lag."
             );
             eventRate = Config.Bind<int>(
-                "Event Settings",
+                "Spawn Settings",
                 "EventRate",
-                1,
-                "Boosts how often events are triggered.\nRoughly every 1 in (10 - EventRate) cycle."
+                15,
+                "Boosts how often events are triggered.\nEventRate% of the time."
             );
-           
+            purgeRate = Config.Bind<int>(
+                "Event Settings",
+                "PurgeRate",
+                5,
+                "Limits how many items a Purge can take.\nWon't take more than PurgeRate and will always leave at least 3. (Set to 0 to disable Purge events.)"
+            );
+
+            //Randomize chest drops using our drop table method
             On.RoR2.ChestBehavior.ItemDrop += (orig, self) =>
             {
-                FieldInfo dropPickup = self.GetType().GetField("dropPickup", BindingFlags.Instance | BindingFlags.NonPublic);
-                PickupIndex pickupIndex = (PickupIndex)dropPickup.GetValue(self);
-                if (pickupIndex != PickupIndex.none)
+                try
                 {
-                    EntityStateMachine component = self.GetComponent<EntityStateMachine>();
-                    if (component)
-                    {
-                        //component.SetNextState(new SerializableEntityStateType(typeof(Opening)));
-                        //EntityState chestState = new SerializableEntityStateType(typeof(Opening));
-                        //component.SetNextState(Instantiate<EntityState>(new SerializableEntityStateType(typeof(Opening)));
+                    PropertyInfo dropPickupField = typeof(ChestBehavior).GetProperty("dropPickup", BindingFlags.Instance | BindingFlags.Public);
+                    System.Console.WriteLine("ChaosMode Log: DropPickup is null? {0}", dropPickupField == null);
 
-                        List<PickupIndex> newRoll = RollType(Random.Range(1, 6));
-                        dropPickup.SetValue(self, newRoll[random.Next(0, newRoll.Count)]);
-                        orig(self);
-                        return;
-                    }
-                    dropPickup.SetValue(self, PickupIndex.none);
-                    orig(self);
+                    List<PickupIndex> newRoll = RollType(GetDropTable());
+                    if (!Run.instance.IsPickupAvailable(newRoll[0])) newRoll = RollType(GetDropTable(true)); //Prevent an undroppable item
+
+                    PickupIndex item = newRoll[random.Next(0, newRoll.Count)];
+                    dropPickupField.SetValue(self, item);
                 }
-            };
-            On.RoR2.ChestBehavior.Open += (orig, self) =>
-            {
-                if ((PickupIndex)self.GetType().GetField("dropPickup", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(self) == PickupIndex.none)
+                catch
                 {
-                    self.ItemDrop();
-                    return;
+                    System.Console.WriteLine("Error in ChestBehaviour.ItemDrop Hook");
                 }
-                orig.Invoke(self);
+
+                orig(self);
+                return;
             };
         }
         public void Update()
@@ -105,12 +111,19 @@ namespace ChaosMode
             //Chaos Mode Functions
             Initialize();
             TimedSummon();
+
+            //Debug Tools
+            //ReadSpawnCards();
+            //SpawnGrandparent();
+            //GiveLuck();
         }
 
-        //Admin Management     
+        //Game Management     
         public IEnumerator Intro()
         {
             yield return new WaitForSeconds(1f);
+
+            //For now we assume the expansion is installed and active
 
             //Give initial items
             List<PickupIndex> newRoll = RollType(0);
@@ -119,17 +132,17 @@ namespace ChaosMode
             for (int i = 0; i < 3; i++)
             {
                 item = newRoll[random.Next(0, newRoll.Count)];
-                GiveToAllPlayers(item, 0);
+                GiveToAllPlayers(item);
             }
             newRoll = RollType(1);
             for (int i = 0; i < 2; i++)
             {
                 item = newRoll[random.Next(0, newRoll.Count)];
-                GiveToAllPlayers(item, 0);
+                GiveToAllPlayers(item);
             }
             newRoll = RollType(2);
             item = newRoll[random.Next(0, newRoll.Count)];
-            GiveToAllPlayers(item, 0);
+            GiveToAllPlayers(item);
 
             Chat.SendBroadcastChat(new Chat.SimpleChatMessage
             {
@@ -138,6 +151,7 @@ namespace ChaosMode
         }
         public void Initialize()
         {
+            //Wait until we leave the non-game screens, otherwise cancel all coroutines
             string scene = SceneManager.GetActiveScene().name;
             if (scene != "splash" & scene != "intro" & scene != "title" & scene != "lobby" & scene != "loadingbasic")
             {
@@ -150,14 +164,35 @@ namespace ChaosMode
             else
             {
                 StopAllCoroutines();
+                spawning = false;
                 initialize = false;
                 iteration = 0;
             }
         }
 
-        //Items 0-Everyone, 1-OnlyHost
+        //Item Methods
+        public int GetDropTable(bool restrict1 = false)
+        {
+            //In order,                 W > G > R > E > L > B > C 
+            int[] weights = new int[] { 20, 15, 10, 15, 10, 10, restrict1 ? 0 : corruptRate.Value };
+            int strength = 0, check = 0;
+            foreach (int i in weights) strength += i;
+            int roll = random.Next(0, strength);
+
+            //Pick subset based on weight and order
+            for (int i = 0; i < weights.Length; i++)
+            {
+                check += weights[i];
+                if (roll < check)
+                {
+                    return i;
+                }
+            }
+            return 0;
+        }
         public List<PickupIndex> RollType(int item)
         {
+            //Return the corresponding roll type per item tier
             List<PickupIndex> rollType = Run.instance.availableTier1DropList;
             switch (item)
             {
@@ -174,11 +209,20 @@ namespace ChaosMode
                     break;
 
                 case 4:
-                    rollType = Run.instance.availableLunarDropList;
+                    rollType = Run.instance.availableLunarItemDropList;
                     break;
 
                 case 5:
                     rollType = Run.instance.availableEquipmentDropList;
+                    break;
+
+                //Include all void items in one tier so as not to bloat the drop table
+                case 6:
+                    List<PickupIndex>[] corruptedList = new List<PickupIndex>[4] {
+                        Run.instance.availableVoidTier1DropList, Run.instance.availableVoidTier2DropList,
+                        Run.instance.availableVoidTier3DropList, Run.instance.availableVoidBossDropList
+                    };
+                    rollType = corruptedList[random.Next(0, corruptedList.Length)];
                     break;
 
                 default:
@@ -186,78 +230,127 @@ namespace ChaosMode
             }
             return rollType;
         }
-        public void GiveToAllPlayers(PickupIndex pickupIndex, int playerPreference, int count = 1)
+        public void GiveToAllPlayers(PickupIndex pickupIndex, int count = 1)
         {
+            //Loop through players and give them each the same pickupindex
             foreach (PlayerCharacterMasterController playerCharacterMasterController in PlayerCharacterMasterController.instances)
             {
                 string nameOut = playerCharacterMasterController.GetDisplayName();
-                if (playerPreference == 0 ? true : playerPreference == 1 ? nameOut == "Pocket" : nameOut != "Pocket")
+                CharacterMaster master = playerCharacterMasterController.master;
+                master.inventory.GiveItem(PickupCatalog.GetPickupDef(pickupIndex).itemIndex, count);
+                MethodInfo method = typeof(GenericPickupController).GetMethod("SendPickupMessage", BindingFlags.Static | BindingFlags.NonPublic);
+                method.Invoke(null, new object[]
                 {
-                    CharacterMaster master = playerCharacterMasterController.master;
-                    master.inventory.GiveItem(PickupCatalog.GetPickupDef(pickupIndex).itemIndex, count);
-                    MethodInfo method = typeof(GenericPickupController).GetMethod("SendPickupMessage", BindingFlags.Static | BindingFlags.NonPublic);
-                    method.Invoke(null, new object[]
-                    {
                     master,
                     pickupIndex
-                    });
-                }
+                });
+            }
+        }
+        public void EquipAllPlayers(int pickupIndex)
+        {
+            //Loop through each player and equip the same equipmentindex
+            foreach (PlayerCharacterMasterController playerCharacterMasterController in PlayerCharacterMasterController.instances)
+            {
+                string nameOut = playerCharacterMasterController.GetDisplayName();
+                CharacterMaster master = playerCharacterMasterController.master;
+                master.inventory.SetEquipmentIndex((EquipmentIndex)pickupIndex);
+                MethodInfo method = typeof(GenericPickupController).GetMethod("SendPickupMessage", BindingFlags.Static | BindingFlags.NonPublic);
+                method.Invoke(null, new object[]
+                {
+                    master,
+                    pickupIndex
+                });
             }
         }
 
-        //Chaos Mode
+        //Chaos Mode Methods
         public void TimedSummon()
         {
             if (initialize)
             {
                 float t = Run.instance.GetRunStopwatch();
-                if (Mathf.FloorToInt(t) % (60 - Mathf.Clamp(chaosSpeed.Value - 1, 0, 45)) == 0 & t != 0)
+                if (Mathf.FloorToInt(t) % (60 - Mathf.Clamp(chaosSpeed.Value - 1, 0, 45)) == 0 & t > 5)
                 {
                     if (!spawning)
                     {
                         spawning = true;
                         SpawnEveryMinute();
+                        StartCoroutine(FailSafeDelay());
                     }
                 }
-                else
-                    spawning = false;
+                //else
+                //    spawning = false;
             }
+        }
+        public IEnumerator FailSafeDelay()
+        {
+            yield return new WaitForSeconds(1f);
+            spawning = false;
+        }
+        public int GetInstanceTable()
+        {
+            //In order,                 S > B > E
+            int[] weights = new int[] { swarmRate.Value, Mathf.Clamp(100 - swarmRate.Value - eventRate.Value, 0, 100), eventRate.Value };
+            int strength = 0, check = 0;           
+            foreach (int i in weights) strength += i;
+            int roll = random.Next(0, strength);
+
+            for (int i = 0; i < weights.Length; i++)
+            {
+                check += weights[i];
+                if (roll < check)
+                {
+                    return i;
+                }
+            }
+            return 0;
         }
         public void SpawnEveryMinute()
         {
-            SpawnCardData[] normalEnemies = new SpawnCardData[] { Vagrant, BeetleQueen, GreaterWisp, RoboBallBoss, ClayBruiser, Parent };
-            SpawnCardData[] heavyEnemies = new SpawnCardData[] { TitanGold, GraveKeeper, MagmaWorm, ArchWisp, Brother, Nullifier, ClayBoss, LunarGolem, LunarWisp, ImpBoss };
+            SpawnCardData[] normalEnemies = new SpawnCardData[] { Vagrant, BeetleQueen, GreaterWisp, RoboBallBoss, ClayBruiser, Parent, TitanPlains };
+            SpawnCardData[] heavyEnemies = new SpawnCardData[] { TitanGold, GraveKeeper, MagmaWorm, ArchWisp, Brother, Nullifier, ClayBoss, LunarGolem, LunarWisp, ImpBoss, Grandparent };
             SpawnCardData[] swarmEnemies = new SpawnCardData[] { Beetle, BeetleGuard, LesserWisp, GreaterWisp, Bell, Bison, Imp, Golem, Lemurian, Jellyfish, HermitCrab, Parent, Vulture };
+            SpawnCardData[] voidDLCEnemies = new SpawnCardData[] { Larva, Grenadier, Pest, Gup, Major, Vermin, Barnacle, Jailer, MegaCrab, Voidling, Infestor };
 
-            int[] itemOrder = new int[] { 0, 0, 1, 0, 0, 0, 1, 0, 2, 0, 0, 0, 1, 0, 1, 3, 0, 1, 0, 0, 1, 0, 1, 0, 4, 0, 0 };
+            //int[] itemOrder = new int[] { 0, 0, 1, 0, 0, 0, 1, 0, 2, 4, 0, 0, 1, 0, 1, 3, 0, 1, 0, 0, 1, 0, 1, 0, 4, 0, 0 };
             int[] enemyOrder = new int[] { 1, 1, 1, 1, 2, 1, 1, 2, 2, 1, 1, 1, 1, 1, 3, 2, 1, 1, 1, 1, 1, 3, 1, 1, 3, 1, 2 };
 
-            if (random.Next(0, Mathf.Clamp(10 - eventRate.Value, 2, 10)) == 0)
-            {
-                //Event
-                List<IEnumerator> events = new List<IEnumerator>() { JellyfishEvent(), PurgeAllItems(), EliteParentEvent(), FinalEncounter() };
-                StartCoroutine(events[random.Next(0, events.Count)]);
-            }
-            else if (random.Next(0, 10 - Mathf.Clamp(swarmRate.Value, 0, 9)) != 0)
-            {
-                //Spawn Single Enemy
-                SpawnCardData enemy = (iteration + 1) % (10 - Mathf.Clamp(ambushRate.Value, 0, 9)) == 0 ? heavyEnemies[random.Next(0, heavyEnemies.Length)] : normalEnemies[random.Next(0, normalEnemies.Length)];
-                SummonEnemy(enemy, enemyOrder[iteration] * Mathf.Clamp(Mathf.FloorToInt((float)Run.instance.GetDifficultyScaledCost(5) / 5f), 1, 10));
+            SpawnCardData enemy = null;
+            List<PickupIndex> newRoll = null;
+            int type = 0;
 
-                List<PickupIndex> newRoll = RollType(itemOrder[iteration++]);
-                GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)], 0);
-            }
-            else
+            switch (GetInstanceTable())
             {
-                //Swarm Spawn
-                SpawnCardData enemy = swarmEnemies[random.Next(0, swarmEnemies.Length)];
-                SummonEnemy(enemy, random.Next(5, 10) * Mathf.Clamp(Mathf.FloorToInt((float)Run.instance.GetDifficultyScaledCost(1) / 20f), 1, 5));
+                case 0:
+                    //Swarm Spawn
+                    enemy = swarmEnemies[random.Next(0, swarmEnemies.Length)];
+                    SummonEnemy(enemy, random.Next(5, 10) * Mathf.Clamp(Mathf.FloorToInt((float)Run.instance.GetDifficultyScaledCost(1) / 20f), 1, 5));
 
-                List<PickupIndex> newRoll = RollType(itemOrder[iteration++]);
-                GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)], 0);
+                    type = GetDropTable();
+                    newRoll = RollType(GetDropTable());
+                    if (type != 5) GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]); else EquipAllPlayers(newRoll[random.Next(0, newRoll.Count)].value);
+                    break;
+
+                case 1:
+                    //Spawn Single Enemy
+                    //enemy = voidDLCEnemies[random.Next(0, voidDLCEnemies.Length)];
+                    enemy = (iteration + 1) % (10 - Mathf.Clamp(ambushRate.Value, 0, 9)) == 0 ? heavyEnemies[random.Next(0, heavyEnemies.Length)] : normalEnemies[random.Next(0, normalEnemies.Length)];
+                    SummonEnemy(enemy, enemyOrder[iteration] * Mathf.Clamp(Mathf.FloorToInt((float)Run.instance.GetDifficultyScaledCost(5) / 5f), 1, 10));
+
+                    type = GetDropTable();
+                    newRoll = RollType(GetDropTable());
+                    if (type != 5) GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]); else EquipAllPlayers(newRoll[random.Next(0, newRoll.Count)].value);
+                    break;
+
+                case 2:
+                    //Event
+                    List<IEnumerator> events = false ? new List<IEnumerator>() { JellyfishEvent(), PurgeAllItems(), EliteParentEvent(), FinalEncounter(), Corruption() } :
+                                                       new List<IEnumerator>() { JellyfishEvent(), purgeRate.Value > 0 ? PurgeAllItems() : JellyfishEvent(), EliteParentEvent(), FinalEncounter() };
+                    StartCoroutine(events[random.Next(0, events.Count)]);
+                    break;
             }
 
-            if (iteration >= itemOrder.Length) { iteration = 0; }
+            if (iteration >= enemyOrder.Length) { iteration = 0; }
         }
 
         //Chaos Events
@@ -323,7 +416,7 @@ namespace ChaosMode
         {
             Chat.SendBroadcastChat(new Chat.SimpleChatMessage
             {
-                baseToken = "<color=#bb0011>CHAOS MODE:\n<color=#ff0000>Final event!\nTime to face the king of nothing!</color>"
+                baseToken = "<color=#bb0011>CHAOS MODE:\n<color=#ff0000>Final event!\nTime to face the King of Nothing!</color>"
             });
 
             foreach (PlayerCharacterMasterController player in PlayerCharacterMasterController.instances)
@@ -331,18 +424,9 @@ namespace ChaosMode
                 StartCoroutine(Purge(player));
             }
 
-            CharacterSpawnCard spawnCard = Resources.Load<CharacterSpawnCard>(Parent.location);
+            CharacterSpawnCard spawnCard = Resources.Load<CharacterSpawnCard>(Brother.location);
             PlayerCharacterMasterController origin = PlayerCharacterMasterController.instances[0];
             GameObject spawnedInstance = SpawnEnemy(spawnCard, origin.master.GetBody().transform.position).spawnedInstance;
-            spawnedInstance.GetComponent<CharacterMaster>().inventory.SetEquipmentIndex((EquipmentIndex)Fire);
-            StartCoroutine(CheckIfEnemyDied(spawnedInstance));
-
-            spawnedInstance = SpawnEnemy(spawnCard, origin.master.GetBody().transform.position).spawnedInstance;
-            spawnedInstance.GetComponent<CharacterMaster>().inventory.SetEquipmentIndex((EquipmentIndex)Ice);
-            StartCoroutine(CheckIfEnemyDied(spawnedInstance));
-
-            spawnedInstance = SpawnEnemy(spawnCard, origin.master.GetBody().transform.position).spawnedInstance;
-            spawnedInstance.GetComponent<CharacterMaster>().inventory.SetEquipmentIndex((EquipmentIndex)Lightning);
             StartCoroutine(CheckIfEnemyDied(spawnedInstance));
 
             yield return null;
@@ -351,10 +435,29 @@ namespace ChaosMode
         {
             CharacterMaster master = player.master;
             List<ItemIndex> inventory = master.inventory.itemAcquisitionOrder;
-            int cap = random.Next(0, inventory.Count - 2);
+            int cap = random.Next(3, inventory.Count - 2), j = 0;
             for (int i = inventory.Count - 1; i >= cap; i--)
             {
                 master.inventory.RemoveItem(inventory[i], Mathf.Min(master.inventory.GetItemCount(inventory[i]), 2147483647));
+                yield return new WaitForSeconds(1f);
+
+                j++;
+                if (j > purgeRate.Value)
+                    break;
+            }
+        }
+        public IEnumerator Corruption()
+        {
+            Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+            {
+                baseToken = "<color=#bb0011>CHAOS MODE:\n<color=#ff0000>[T?he V??oid to?uc?hes y?ou!]</color>"
+            });
+
+            int corrupt = random.Next(1, 5);
+            for (int i = 0; i < corrupt; i--)
+            {
+                List<PickupIndex> corruption = RollType(random.Next(6, 10));
+                GiveToAllPlayers(corruption[random.Next(0, corruption.Count)]);
                 yield return new WaitForSeconds(1f);
             }
         }
@@ -362,19 +465,27 @@ namespace ChaosMode
         //Enemy Spawns
         public void SummonEnemy(SpawnCardData enemyType, int reps)
         {
+            System.Console.WriteLine(enemyType.name);
+
             int loop = 0;
-            int[] elements;
-            int[] elementsEasy = new int[] { Lightning, Fire, Ice }, elementsHard = new int[] { Lightning, Fire, Ice, Ghost, Poison };
+            //int[] elements, elementsEasy = new int[] { Lightning, Fire, Ice }, 
+            int[] elementsHard = new int[] { Lightning, Fire, Ice, Ghost, Poison, Echo };
             float difficulty = 0, threshold = 1;
             string elementName = "";
 
-            difficulty = (Run.instance.GetDifficultyScaledCost(reps) * enemyType.difficultyBase * Random.Range(0.8f, 1.2f)) / Run.instance.GetDifficultyScaledCost(reps);
-            threshold = 1 - ((float)eliteRate.Value / 100f);
-            System.Console.WriteLine("Difficulty is {0}", difficulty);
+            //Threshold gets lower, until it's at 0.5f
+            threshold =  1.9f - (((float)eliteRate.Value / 100f) * 1.5f);
+            difficulty = 2 - Mathf.Clamp((Run.instance.GetDifficultyScaledCost(reps) * enemyType.difficultyBase * Random.Range(0.7f, 1.3f)) / Run.instance.GetDifficultyScaledCost(reps), 0.5f, 2);
+            System.Console.WriteLine("Difficulty is {0} > Elite Threshold is {1}", difficulty, threshold);
 
-            elements = difficulty < threshold ? elementsHard : difficulty < (threshold * 1.5f) ? elementsEasy : elementsEasy;
-            int element = elements[Random.Range(0, elements.Length)];
-            bool getElement = eliteRate.Value == 0 ? false : difficulty < (threshold * 1.5f) & Random.Range(0f, difficulty * 3) <= (difficulty / 2);
+            //Get an element and bool based on the difficulty
+            bool getElement = difficulty > threshold ? random.Next(0, 2) == 0 ? true : false : false;
+            int element = elementsHard[Random.Range(0, elementsHard.Length)]; //Just use full element list for now
+
+            //If the difficulty is lower than 1-2 based on the threshold, then use harder elite types (weaker enemies are more likely to be elite
+            //elements = difficulty < threshold ? elementsHard : difficulty < (threshold * 1.1f) ? elementsEasy : elementsEasy;
+            //int element = elements[Random.Range(0, elements.Length)];
+            //bool getElement = eliteRate.Value == 0 ? false : difficulty < (threshold * 1.5f) & Random.Range(0f, difficulty * 3) <= (difficulty / 2);
 
             CharacterSpawnCard spawnCard = Resources.Load<CharacterSpawnCard>(enemyType.location);
             int count = Mathf.Clamp(Mathf.FloorToInt(reps * Mathf.FloorToInt(1 + (chaosRate.Value / 10))), 1, Mathf.Clamp(maxEnemies.Value, 1, 50));
@@ -386,9 +497,10 @@ namespace ChaosMode
                     if (getElement)
                     {
                         spawnedInstance.GetComponent<CharacterMaster>().inventory.SetEquipmentIndex((EquipmentIndex)element);
-                        elementName = element == 6 ? " Blazing" : element == 7 ? " Glacial" : element == 0 ? " Overloading"
-                            : element == 3 ? " Celestine" : element == 5 ? " Malachite" : "";
-                        count--;
+                        elementName = 
+                            element == Fire  ? " Blazing"   : element == Ice    ? " Glacial"   : element == Lightning ? " Overloading" :
+                            element == Ghost ? " Celestine" : element == Poison ? " Malachite" : element == Echo      ? "Perfected"    : "";
+                        count = Mathf.Clamp(count - 1, 1, 50);
                     }
                     StartCoroutine(CheckIfEnemyDied(spawnedInstance));
                     loop++;
@@ -404,7 +516,7 @@ namespace ChaosMode
         public SpawnCard.SpawnResult SpawnEnemy(CharacterSpawnCard spawnCard, Vector3 center)
         {
             spawnCard.noElites = false;
-            spawnCard.eliteRules = SpawnCard.EliteRules.Lunar;
+            spawnCard.eliteRules = SpawnCard.EliteRules.Default;
 
             DirectorPlacementRule placementRule = new DirectorPlacementRule
             {
@@ -421,19 +533,91 @@ namespace ChaosMode
         public IEnumerator CheckIfEnemyDied(GameObject enemy)
         {
             while (enemy != null)
-            {
                 yield return new WaitForSeconds(0.1f);
-            }
+
             foreach (PlayerCharacterMasterController player in PlayerCharacterMasterController.instances)
-            {
                 player.GetComponent<CharacterMaster>().GiveMoney((uint)Run.instance.GetDifficultyScaledCost(20));
+        }
+
+        //Admin Extras
+        //Ease of Use
+        /*
+        public void ReadSpawnCards()
+        {
+            if (Input.GetKeyDown(KeyCode.F1))
+                /foreach (SpawnCard s in Resources.LoadAll<SpawnCard>("SpawnCards/CharacterSpawnCards/"))
+                //foreach (ExpansionDef s in Resources.LoadAll<ExpansionDef>("Common"))
+                    Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+                    {
+                        baseToken = s.name
+                    });
+        }
+        public void SpawnGrandparent()
+        {
+            if (Input.GetKeyDown(KeyCode.F1))
+                SummonEnemy(Grandparent, 1);
+        }
+        int itemAdminSetindex = 0, itemAdminSubsetIndex = 0;
+        public void GiveLuck()
+        {
+            if (Input.GetKeyDown(KeyCode.UpArrow))
+            {
+                itemAdminSetindex++;
+                Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+                {
+                    baseToken = "<color=#bb0011>Index " + itemAdminSetindex + "</color>"
+                });
+            }
+            if (Input.GetKeyDown(KeyCode.DownArrow))
+            {
+                itemAdminSetindex--;
+                Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+                {
+                    baseToken = "<color=#bb0011>Index " + itemAdminSetindex + "</color>"
+                });
+            }
+
+            if (Input.GetKeyDown(KeyCode.LeftArrow))
+            {
+                itemAdminSubsetIndex++;
+                Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+                {
+                    baseToken = "<color=#bb0011>Item Set " + itemAdminSubsetIndex + "</color>"
+                });
+            }
+            if (Input.GetKeyDown(KeyCode.RightArrow))
+            {
+                itemAdminSubsetIndex--;
+                Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+                {
+                    baseToken = "<color=#bb0011>Item Set " + itemAdminSubsetIndex + "</color>"
+                });
+            }
+
+            if (Input.GetKeyDown(KeyCode.F2))
+            {
+                switch (itemAdminSubsetIndex)
+                {
+                    default:
+                        GiveToAllPlayers(RollType(itemAdminSubsetIndex)[itemAdminSetindex], 0);
+                        break;
+
+                    case 5:
+                        EquipAllPlayers(itemAdminSetindex);
+                        break;
+                }
             }
         }
+        public void GiveRadioScanner()
+        {
+
+        }
+        */
 
         System.Random random = new System.Random();
         bool initialize = false, spawning = false;
         int iteration = 0;
-        int Fire = 6, Ice = 7, Lightning = 0, Ghost = 3, Poison = 5, Echo = 1, Yellow = 8, Gold = 2;
+        int Fire = 12, Ice = 15, Lightning = 16, Ghost = 14, Poison = 18, Echo = 17, Yellow = 8, Gold = 2;
 
         public SpawnCardData ArchWisp = new SpawnCardData() { name = "Arch Wisp", location = "SpawnCards/CharacterSpawnCards/cscArchWisp", difficultyBase = 1.1f };
         public SpawnCardData BackupDrone = new SpawnCardData() { name = "Backup Drone", location = "SpawnCards/CharacterSpawnCards/cscBackupDrone" };
@@ -466,61 +650,23 @@ namespace ChaosMode
         public SpawnCardData Parent = new SpawnCardData() { name = "Parent", location = "SpawnCards/CharacterSpawnCards/cscParent", difficultyBase = 0.9f };
         public SpawnCardData RoboBallBoss = new SpawnCardData() { name = "Solus Control Unit", location = "SpawnCards/CharacterSpawnCards/cscRoboBallBoss", difficultyBase = 1.2f };
         public SpawnCardData Vagrant = new SpawnCardData() { name = "Wandering Vagrant", location = "SpawnCards/CharacterSpawnCards/cscVagrant", difficultyBase = 1f };
-        public SpawnCardData TitanPlains = new SpawnCardData() { name = "Stone Titan", location = "SpawnCards/CharacterSpawnCards/cscTitanGolemPlains", difficultyBase = 1f };
-        public SpawnCardData TitanGold = new SpawnCardData() { name = "Aurelionite", location = "SpawnCards/CharacterSpawnCards/cscTitanGold", difficultyBase = 1.5f };
+        public SpawnCardData TitanPlains = new SpawnCardData() { name = "Stone Titan", location = "SpawnCards/CharacterSpawnCards/titan/cscTitanGolemPlains", difficultyBase = 1f };
+        public SpawnCardData TitanGold = new SpawnCardData() { name = "Aurelionite", location = "SpawnCards/CharacterSpawnCards/titan/cscTitanGold", difficultyBase = 1.5f };
         public SpawnCardData Vulture = new SpawnCardData() { name = "Alloy Vulture", location = "SpawnCards/CharacterSpawnCards/cscVulture", difficultyBase = 0.8f };
-        public SpawnCardData Grandparent = new SpawnCardData() { name = "Grandparent", location = "SpawnCards/CharacterSpawnCards/cscGrandparent", difficultyBase = 1.6f };
+        public SpawnCardData Grandparent = new SpawnCardData() { name = "Grandparent", location = "SpawnCards/CharacterSpawnCards/titan/cscGrandParent", difficultyBase = 1.6f };
 
-        /*
-        public static readonly string ArchWisp = "SpawnCards/CharacterSpawnCards/cscArchWisp";
-        public static readonly string BackupDrone = "SpawnCards/CharacterSpawnCards/cscBackupDrone";
-        public static readonly string Beetle = "SpawnCards/CharacterSpawnCards/cscBeetle";
-        public static readonly string BeetleCrystal = "SpawnCards/CharacterSpawnCards/cscBeetleCrystal";
-        public static readonly string BeetleGuard = "SpawnCards/CharacterSpawnCards/cscBeetleGuard";
-        public static readonly string BeetleGuardAlly = "SpawnCards/CharacterSpawnCards/cscBeetleGuardAlly";
-        public static readonly string BeetleGuardCrystal = "SpawnCards/CharacterSpawnCards/cscBeetleGuardCrystal";
-        public static readonly string BeetleQueen = "SpawnCards/CharacterSpawnCards/cscBeetleQueen";
-        public static readonly string Bell = "SpawnCards/CharacterSpawnCards/cscBell";
-        public static readonly string Bison = "SpawnCards/CharacterSpawnCards/cscBison";
-        public static readonly string Brother = "SpawnCards/CharacterSpawnCards/cscBrother";
-        public static readonly string BrotherGlass = "SpawnCards/CharacterSpawnCards/cscBrotherGlass";
-        public static readonly string BrotherHurt = "SpawnCards/CharacterSpawnCards/cscBrotherHurt";
-        public static readonly string ClayBoss = "SpawnCards/CharacterSpawnCards/cscClayBoss";
-        public static readonly string ClayBruiser = "SpawnCards/CharacterSpawnCards/cscClayBruiser";
-        public static readonly string ElectricWorm = "SpawnCards/CharacterSpawnCards/cscElectricWorm";
-        public static readonly string Golem = "SpawnCards/CharacterSpawnCards/cscGolem";
-        public static readonly string GraveKeeper = "SpawnCards/CharacterSpawnCards/cscGraveKeeper";
-        public static readonly string GreaterWisp = "SpawnCards/CharacterSpawnCards/cscGreaterWisp";
-        public static readonly string HermitCrab = "SpawnCards/CharacterSpawnCards/cscHermitCrab";
-        public static readonly string Imp = "SpawnCards/CharacterSpawnCards/cscImp";
-        public static readonly string ImpBoss = "SpawnCards/CharacterSpawnCards/cscImpBoss";
-        public static readonly string Jellyfish = "SpawnCards/CharacterSpawnCards/cscJellyfish";
-        public static readonly string Lemurian = "SpawnCards/CharacterSpawnCards/cscLemurian";
-        public static readonly string LemurianBruiser = "SpawnCards/CharacterSpawnCards/cscLemurianBruiser";
-        public static readonly string LesserWisp = "SpawnCards/CharacterSpawnCards/cscLesserWisp";
-        public static readonly string LunarGolem = "SpawnCards/CharacterSpawnCards/cscLunarGolem";
-        public static readonly string LunarWisp = "SpawnCards/CharacterSpawnCards/cscLunarWisp";
-        public static readonly string MagmaWorm = "SpawnCards/CharacterSpawnCards/cscMagmaWorm";
-        public static readonly string MiniMushroom = "SpawnCards/CharacterSpawnCards/cscMiniMushroom";
-        public static readonly string Nullifier = "SpawnCards/CharacterSpawnCards/cscNullifier";
-        public static readonly string Parent = "SpawnCards/CharacterSpawnCards/cscParent";
-        public static readonly string ParentPod = "SpawnCards/CharacterSpawnCards/cscParentPod";
-        public static readonly string RoboBallBoss = "SpawnCards/CharacterSpawnCards/cscRoboBallBoss";
-        public static readonly string RoboBallMini = "SpawnCards/CharacterSpawnCards/cscRoboBallMini";
-        public static readonly string Scav = "SpawnCards/CharacterSpawnCards/cscScav";
-        public static readonly string ScavLunar = "SpawnCards/CharacterSpawnCards/cscScavLunar";
-        public static readonly string SquidTurret = "SpawnCards/CharacterSpawnCards/cscSquidTurret";
-        public static readonly string SuperRoboBallBoss = "SpawnCards/CharacterSpawnCards/cscSuperRoboBallBoss";
-        public static readonly string TitanGold = "SpawnCards/CharacterSpawnCards/cscTitanGold";
-        public static readonly string TitanGoldAlly = "SpawnCards/CharacterSpawnCards/cscTitanGoldAlly";
-        public static readonly string Vagrant = "SpawnCards/CharacterSpawnCards/cscVagrant";
-        public static readonly string Vulture = "SpawnCards/CharacterSpawnCards/cscVulture";
-        public static readonly string Grandparent = "SpawnCards/CharacterSpawnCards/cscGrandparent";
-        public static readonly string TitanBlackBeach = "SpawnCards/CharacterSpawnCards/cscTitanBlackBeach";
-        public static readonly string TitanDampCave = "SpawnCards/CharacterSpawnCards/cscTitanDampCave";
-        public static readonly string TitanGolemPlains = "SpawnCards/CharacterSpawnCards/cscTitanGolemPlains";
-        public static readonly string TitanGooLake = "SpawnCards/CharacterSpawnCards/cscTitanGooLake";
-        */
+        //DLC
+        public SpawnCardData Larva = new SpawnCardData() { name = "Acid Larva", location = "SpawnCards/CharacterSpawnCards/cscAcidLarva", difficultyBase = 0.3f };
+        public SpawnCardData Grenadier = new SpawnCardData() { name = "Clay Apothecary", location = "SpawnCards/CharacterSpawnCards/cscClayGrenadier", difficultyBase = 1.2f };
+        public SpawnCardData Pest = new SpawnCardData() { name = "Blind Pest", location = "SpawnCards/CharacterSpawnCards/FlyingVermin/cscFlyingVermin", difficultyBase = 0.6f };
+        public SpawnCardData Gup = new SpawnCardData() { name = "Gup", location = "SpawnCards/CharacterSpawnCards/Gup/cscGupBody", difficultyBase = 1f };
+        public SpawnCardData Major = new SpawnCardData() { name = "Xi Construct", location = "SpawnCards/CharacterSpawnCards/MajorAndMinorConstruct/cscMajorConstruct", difficultyBase = 1.4f };
+        public SpawnCardData Vermin = new SpawnCardData() { name = "Blind Vermin", location = "SpawnCards/CharacterSpawnCards/Vermin/cscVermin", difficultyBase = 0.3f };
+        public SpawnCardData Barnacle = new SpawnCardData() { name = "Void Barnacle", location = "SpawnCards/CharacterSpawnCards/Vermin/cscVoidBarnacle", difficultyBase = 0.6f };
+        public SpawnCardData Jailer = new SpawnCardData() { name = "Void Jailer", location = "SpawnCards/CharacterSpawnCards/Vermin/cscVoidJailer", difficultyBase = 1.6f };
+        public SpawnCardData MegaCrab = new SpawnCardData() { name = "Void Devastator", location = "SpawnCards/CharacterSpawnCards/Vermin/cscVoidMegaCrab", difficultyBase = 1.8f };
+        public SpawnCardData Voidling = new SpawnCardData() { name = "Voidling", location = "SpawnCards/CharacterSpawnCards/Vermin/cscVoidRaidCrab", difficultyBase = 3f };
+        public SpawnCardData Infestor = new SpawnCardData() { name = "Void Infestor", location = "SpawnCards/CharacterSpawnCards/Vermin/cscVoidInfestor", difficultyBase = 0.9f };
     }
 
     class SpawnCardData {
