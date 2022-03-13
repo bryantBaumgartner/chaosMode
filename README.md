@@ -22,6 +22,8 @@ PurgeRate| 0 - 10 | 5 | Limits how many items a Purge Event can take from player
 If you have questions or problems, you can leave them in the [issues](https://github.com/bryantBaumgartner/chaosMode/issues) or reach out to me on Discord at `Pocket#4156`.
 
 # Changelog
+2.0.4 - Fixed an issue where items were distributed 0 times.
+
 2.0.3 - Updated dependancies. (sorry guys)
 
 2.0.2 - Fixed a bug that prevented Elite enemies from spawning (added new elite types). Fixed a bug that activated multiple events at once (*needs more testing). Reworked chest drop rates. Added new settings.
