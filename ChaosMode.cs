@@ -13,7 +13,7 @@ using UnityEngine.SceneManagement;
 namespace ChaosMode
 {
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Pocket.ChaosMode", "ChaosMode", "2.0.4")]
+    [BepInPlugin("com.Pocket.ChaosMode", "ChaosMode", "2.0.5")]
     internal class ChaosMode : BaseUnityPlugin
     {
         public static ConfigEntry<int> chaosRate { get; set; }
@@ -86,21 +86,14 @@ namespace ChaosMode
             //Randomize chest drops using our drop table method
             On.RoR2.ChestBehavior.ItemDrop += (orig, self) =>
             {
-                try
-                {
-                    PropertyInfo dropPickupField = typeof(ChestBehavior).GetProperty("dropPickup", BindingFlags.Instance | BindingFlags.Public);
-                    System.Console.WriteLine("ChaosMode Log: DropPickup is null? {0}", dropPickupField == null);
+                PropertyInfo dropPickupField = typeof(ChestBehavior).GetProperty("dropPickup", BindingFlags.Instance | BindingFlags.Public);
+                System.Console.WriteLine("ChaosMode Log: DropPickup is null? {0}", dropPickupField == null);
 
-                    List<PickupIndex> newRoll = RollType(GetDropTable());
-                    if (!Run.instance.IsPickupAvailable(newRoll[0])) newRoll = RollType(GetDropTable(true)); //Prevent an undroppable item
+                List<PickupIndex> newRoll = RollType(GetDropTable());
+                if (!Run.instance.IsPickupAvailable(newRoll[0])) newRoll = RollType(GetDropTable(true)); //Prevent an undroppable item
 
-                    PickupIndex item = newRoll[random.Next(0, newRoll.Count)];
-                    dropPickupField.SetValue(self, item);
-                }
-                catch
-                {
-                    System.Console.WriteLine("Error in ChestBehaviour.ItemDrop Hook");
-                }
+                PickupIndex item = newRoll[random.Next(0, newRoll.Count)];
+                dropPickupField.SetValue(self, item);
 
                 orig(self);
                 return;
@@ -158,8 +151,11 @@ namespace ChaosMode
                 if (!initialize)
                 {
                     initialize = true;
+                    currentRunInstance = Intro();
                     StartCoroutine(Intro());
                 }
+                else if (currentRunInstance == null)
+                    initialize = false; //Patch that prevents errors from totally shutting down the mod
             }
             else
             {
@@ -171,10 +167,10 @@ namespace ChaosMode
         }
 
         //Item Methods
-        public int GetDropTable(bool restrict1 = false)
+        public int GetDropTable(bool restrictVoid = false, bool restrictEquipment = false)
         {
             //In order,                 W > G > R > E > L > B > C 
-            int[] weights = new int[] { 20, 15, 10, 15, 10, 10, restrict1 ? 0 : corruptRate.Value };
+            int[] weights = new int[] { 20, 15, 10, restrictEquipment ? 0 : 15, 10, 10, restrictVoid ? 0 : corruptRate.Value };
             int strength = 0, check = 0;
             foreach (int i in weights) strength += i;
             int roll = random.Next(0, strength);
@@ -246,7 +242,7 @@ namespace ChaosMode
                 });
             }
         }
-        public void EquipAllPlayers(int pickupIndex)
+        [System.Obsolete] public void EquipAllPlayers(int pickupIndex)
         {
             //Loop through each player and equip the same equipmentindex
             foreach (PlayerCharacterMasterController playerCharacterMasterController in PlayerCharacterMasterController.instances)
@@ -310,7 +306,7 @@ namespace ChaosMode
             SpawnCardData[] normalEnemies = new SpawnCardData[] { Vagrant, BeetleQueen, GreaterWisp, RoboBallBoss, ClayBruiser, Parent, TitanPlains };
             SpawnCardData[] heavyEnemies = new SpawnCardData[] { TitanGold, GraveKeeper, MagmaWorm, ArchWisp, Brother, Nullifier, ClayBoss, LunarGolem, LunarWisp, ImpBoss, Grandparent };
             SpawnCardData[] swarmEnemies = new SpawnCardData[] { Beetle, BeetleGuard, LesserWisp, GreaterWisp, Bell, Bison, Imp, Golem, Lemurian, Jellyfish, HermitCrab, Parent, Vulture };
-            SpawnCardData[] voidDLCEnemies = new SpawnCardData[] { Larva, Grenadier, Pest, Gup, Major, Vermin, Barnacle, Jailer, MegaCrab, Voidling, Infestor };
+            //SpawnCardData[] voidDLCEnemies = new SpawnCardData[] { Larva, Grenadier, Pest, Gup, Major, Vermin, Barnacle, Jailer, MegaCrab, Voidling, Infestor };
 
             //int[] itemOrder = new int[] { 0, 0, 1, 0, 0, 0, 1, 0, 2, 4, 0, 0, 1, 0, 1, 3, 0, 1, 0, 0, 1, 0, 1, 0, 4, 0, 0 };
             int[] enemyOrder = new int[] { 1, 1, 1, 1, 2, 1, 1, 2, 2, 1, 1, 1, 1, 1, 3, 2, 1, 1, 1, 1, 1, 3, 1, 1, 3, 1, 2 };
@@ -325,10 +321,11 @@ namespace ChaosMode
                     //Swarm Spawn
                     enemy = swarmEnemies[random.Next(0, swarmEnemies.Length)];
                     SummonEnemy(enemy, random.Next(5, 10) * Mathf.Clamp(Mathf.FloorToInt((float)Run.instance.GetDifficultyScaledCost(1) / 20f), 1, 5));
+                    System.Console.WriteLine("There's an issue in the swarm spawns!");
 
                     type = GetDropTable();
-                    newRoll = RollType(GetDropTable());
-                    if (type != 5) GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]); else EquipAllPlayers(newRoll[random.Next(0, newRoll.Count)].value);
+                    newRoll = RollType(GetDropTable(restrictEquipment: true));
+                    GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
                     break;
 
                 case 1:
@@ -338,14 +335,15 @@ namespace ChaosMode
                     SummonEnemy(enemy, enemyOrder[iteration] * Mathf.Clamp(Mathf.FloorToInt((float)Run.instance.GetDifficultyScaledCost(5) / 5f), 1, 10));
 
                     type = GetDropTable();
-                    newRoll = RollType(GetDropTable());
-                    if (type != 5) GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]); else EquipAllPlayers(newRoll[random.Next(0, newRoll.Count)].value);
+                    newRoll = RollType(GetDropTable(restrictEquipment: true));
+                    GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
                     break;
 
                 case 2:
                     //Event
-                    List<IEnumerator> events = false ? new List<IEnumerator>() { JellyfishEvent(), PurgeAllItems(), EliteParentEvent(), FinalEncounter(), Corruption() } :
+                    List<IEnumerator> events = false ? new List<IEnumerator>() { JellyfishEvent(), PurgeAllItems(), EliteParentEvent(), FinalEncounter() } :
                                                        new List<IEnumerator>() { JellyfishEvent(), purgeRate.Value > 0 ? PurgeAllItems() : JellyfishEvent(), EliteParentEvent(), FinalEncounter() };
+
                     StartCoroutine(events[random.Next(0, events.Count)]);
                     break;
             }
@@ -494,7 +492,7 @@ namespace ChaosMode
                 foreach (PlayerCharacterMasterController player in PlayerCharacterMasterController.instances)
                 {
                     GameObject spawnedInstance = SpawnEnemy(spawnCard, player.master.GetBody().transform.position).spawnedInstance;
-                    if (getElement)
+                    if (getElement & spawnedInstance)
                     {
                         spawnedInstance.GetComponent<CharacterMaster>().inventory.SetEquipmentIndex((EquipmentIndex)element);
                         elementName = 
@@ -615,6 +613,7 @@ namespace ChaosMode
         */
 
         System.Random random = new System.Random();
+        IEnumerator currentRunInstance;
         bool initialize = false, spawning = false;
         int iteration = 0;
         int Fire = 12, Ice = 15, Lightning = 16, Ghost = 14, Poison = 18, Echo = 17, Yellow = 8, Gold = 2;
