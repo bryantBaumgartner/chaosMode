@@ -1,4 +1,5 @@
-# Now Compatible with `Survivors of The Void Expansion`
+# Compatibility
+Chaos Mode works with the `Survivors of The Void Expansion`, however it will not work/experience issues if the Expansion is not installed or enabled.
 
 # What's Chaos Mode?
 Chaos Mode is a Risk of Rain 2 mod that adds, well... Chaos. Bosses and swarms spawn on a timer and items are randomly dispersed all the time. Events can be triggered that drastically change the way the game is experienced. Only required by the host in multiplayer (Assuming you have HookGenPatcher installed).
@@ -22,6 +23,8 @@ PurgeRate| 0 - 10 | 5 | Limits how many items a Purge Event can take from player
 If you have questions or problems, you can leave them in the [issues](https://github.com/bryantBaumgartner/chaosMode/issues) or reach out to me on Discord at `Pocket#4156`.
 
 # Changelog
+2.0.5 - Fixed an issue that broke the mod when distributing Equipment to players.
+
 2.0.4 - Fixed an issue where items were distributed 0 times.
 
 2.0.3 - Updated dependancies. (sorry guys)
