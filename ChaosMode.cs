@@ -610,7 +610,7 @@ namespace ChaosMode
             float difficulty = 0, threshold = 1;
 
             //Elite types
-            List<EliteEquipment> eliteTypes = new List<EliteEquipment>() { ADFire, ADIce, ADLightning, ADGhost, ADPoison, ADEcho, ADEarth, ADVoid };
+            List<EliteEquipment> eliteTypes = new List<EliteEquipment>() { ADFire, ADIce, ADLightning, ADGhost, ADPoison, ADEcho };
             if (expansion1) eliteTypes.AddRange(new List<EliteEquipment>() { ADEarth, ADVoid });
   
             //Threshold gets lower, until it's at 0.5f
