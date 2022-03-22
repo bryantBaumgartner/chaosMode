@@ -2,7 +2,7 @@
 As of patch 2.1.0 Chaos Mode works with the `Survivors of The Void Expansion` AND is vanilla-compatible!
 
 # What's Chaos Mode?
-Chaos Mode is a Risk of Rain 2 mod that adds, well... Chaos. Bosses and swarms spawn on a timer and items are randomly dispersed all the time. Events can be triggered that drastically change the way the game is experienced. Only required by the host in multiplayer (with the right mod installed).
+Chaos Mode is a Risk of Rain 2 mod that adds, well... Chaos. Bosses and swarms spawn on a timer and items are randomly dispersed all the time. Chest are randomized and events can be triggered that drastically change the way the game is experienced. Only required by the host in multiplayer (with the right mod installed).
 
 # Configuration
 All settings are intended to work at their default. Raising them can cause unnecessary lag or crashing (especially when combined with the Survivors of The Void DLC). Adjust carefully.
@@ -29,7 +29,9 @@ PurgeRate| 0 - 10 | 5 | Limits how many items a Purge Event can take from player
 If you have questions or problems, you can leave them in the [issues](https://github.com/bryantBaumgartner/chaosMode/issues) or reach out to me on Discord at `Pocket#4156` either in DMs or the [RoR2 Modding Discord](https://discord.gg/JDbYRZCGbs).
 
 # Changelog
-2.1.0 - Vanilla-compatible. Fixed an indexing issue with the item system. Added new enemies and events. Reworked spawn system. Changed and added new settings.
+2.1.1 - Fixed an issue with one of the events. Changed drop table for void items. Reworked Elite system and added new Elite types: Mending, Void. Cleaned up behind-the-scenes code.
+
+2.1.0 - Vanilla-compatible. Fixed an indexing issue with the item system. Added new enemies and events. Reworked enemy spawn system. Changed and added new settings (this may require deleting and remaking your config file).
 
 2.0.5 - Fixed an issue that broke the mod when distributing Equipment to players.
 
@@ -37,7 +39,7 @@ If you have questions or problems, you can leave them in the [issues](https://gi
 
 2.0.3 - Updated dependancies (Whoops).
 
-2.0.2 - Fixed a bug that prevented Elite enemies from spawning. Added new elite type: Perfected. Fixed a bug that activated multiple events at once. Reworked chest drop system. Added new settings.
+2.0.2 - Fixed a bug that prevented Elite enemies from spawning. Added new Elite type: Perfected. Fixed a bug that activated multiple events at once. Reworked chest drop system. Added new settings.
 
 2.0.1 - Compatibility with `Survivors of The Void` DLC. Items can spawn as Corrupted Items whenever rolled. No longer vanilla-compatible.
 
