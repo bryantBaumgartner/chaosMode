@@ -16,19 +16,23 @@ LegendRate | 0 - 100 | 10 | Raises the likelyhood that a legendary item will be 
 BossRate | 0 - 100 | 10 | Raises the likelyhood that a boss item will be rolled.
 LunarRate | 0 - 100 | 10 | Raises the likelyhood that a lunar item will be rolled.
 CorruptRate | 0 - 100 | 10 | Raises the likelyhood that a corrupted item will be rolled. (Requires Survivors of The Void)
-SwarmRate | 0 - 100 | 35 | Likelyhood of spawning low-tier swarms.
-EventRate | 0 - 100 | 15 | Rate at which special "Chaos events" are triggered.
-AmbushRate | 0 - 100 | 30 | Likelyhood of spawning high-tier boss enemies.
-EliteRate | 0 - 100 | 50 | Likelyhood of spawning elite enemies.
+SwarmRate | 0 - 100 | 35 | Raises the likelyhood of spawning low-tier swarms.
+EventRate | 0 - 100 | 15 | Raises the likelyhood that special "Chaos Events" are triggered.
+AmbushRate | 0 - 100 | 30 | Raises the likelyhood of spawning high-tier boss enemies.
+EliteRate | 0 - 100 | 50 | Raises the likelyhood of spawning elite enemies.
 SpawnLimit| True/False | True | Limits the amount of enemies that the mod can spawn. WARNING! TURNING THIS OFF CAN CAUSE LAG OR CRASHES!
 MaxEnemies | 1 - 50 | 20 | Maximum amount of enemies that can spawn at once. Ignored if SpawnLimit is 'False'.
 SwarmAggression | 1 - 5 | 1 | Multiplies the average number of enemies spawned in swarms.
+EnableOrder| True/False | False | Enables or disables the order event wherein your items are redistributed.
 PurgeRate| 0 - 10 | 5 | Limits how many items a Purge Event can take from players. Always keeps at least 3 items.
 
 # Contact
 If you have questions or problems, you can leave them in the [issues](https://github.com/bryantBaumgartner/chaosMode/issues) or reach out to me on Discord at `Pocket#4156` either in DMs or the [RoR2 Modding Discord](https://discord.gg/JDbYRZCGbs).
 
 # Changelog
+2.2.1 
++ Added a new setting to enable/disable the Sequencing event.
+
 2.2.0 
 + ChaosMode is now an Artifact (Artifact of ChaosMode)!
 
