@@ -15,11 +15,15 @@ using UnityEngine.SceneManagement;
 namespace ChaosMode
 {
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Pocket.ChaosMode", "ChaosMode", "2.2.0")]
-    [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.EveryoneNeedSameModVersion)]
+    [BepInPlugin("com.Pocket.ChaosMode", "ChaosMode", "2.2.3")]
+    //[NetworkCompatibility(CompatibilityLevel.NoNeedForSync, VersionStrictness.EveryoneNeedSameModVersion)]
     internal class ChaosMode : BaseUnityPlugin
     {
+        //I got bored and put secret messages all over this code. Shame you can't see them in DnSpy...
+
+        public static ConfigEntry<bool> artifactMode { get; set; }
         public static ConfigEntry<int> chaosSpeed { get; set; }
+        public static ConfigEntry<bool> giveItems { get; set; }
         public static ConfigEntry<int> commonRate { get; set; }
         public static ConfigEntry<int> uncommonRate { get; set; }
         public static ConfigEntry<int> legendRate { get; set; }
@@ -33,10 +37,11 @@ namespace ChaosMode
         public static ConfigEntry<bool> spawnLimit { get; set; }
         public static ConfigEntry<int> maxEnemies { get; set; }
         public static ConfigEntry<int> swarmAggression { get; set; }
+        public static ConfigEntry<bool> enableOrder { get; set; }
         public static ConfigEntry<int> purgeRate { get; set; }
 
-        private static int oldTimer, Equipment = 5;
-        private static bool initialized, spawning, expansion1;
+        private static int oldTimer;
+        private static bool initialized, spawning, expansion1, multiplayerMode = true;
         private static ChaosMode instance;
         private static ArtifactDef ChaosArtifact;
         private static System.Random random = new System.Random();
@@ -45,21 +50,45 @@ namespace ChaosMode
         public void Awake()
         {
             instance = this;
-
             InitConfig();
-            InitArtifact();
 
-            RunArtifactManager.onArtifactEnabledGlobal += OnArtifactEnabled;
-            RunArtifactManager.onArtifactDisabledGlobal += OnArtifactDisabled;
+            if (artifactMode.Value)
+            {
+                InitArtifact();
+
+                RunArtifactManager.onArtifactEnabledGlobal += OnArtifactEnabled;
+                RunArtifactManager.onArtifactDisabledGlobal += OnArtifactDisabled;
+            }
+            else
+            {
+                //Add them by default for now
+                On.RoR2.Run.Start += new On.RoR2.Run.hook_Start(Run_Start);
+                On.RoR2.ChestBehavior.ItemDrop += new On.RoR2.ChestBehavior.hook_ItemDrop(ChestBehavior_ItemDrop);
+            }
         }
         private void InitConfig()
         {
+            //Tooling
+            artifactMode = Config.Bind<bool>(
+                "Mode Settings",
+                "ArtifactMode",
+                true,
+                "Enable or disable the mod as an artifact.\nTurn this off if playing multiplayer with unmodded clients."
+            );
+
             //Chaos
             chaosSpeed = Config.Bind<int>(
                 "Chaos Settings",
                 "ChaosSpeed",
                 60,
                 "Raises the speed that Chaos Mode activates.\nIndicates how many seconds to wait before each Event or Spawn."
+            );
+
+            giveItems = Config.Bind<bool>(
+                "Chaos Settings",
+                "GiveItems",
+                true,
+                "Turn random item distribution on or off.\nItems either will or won't be added to your inventory when an event triggers."
             );
 
             //Items
@@ -147,22 +176,30 @@ namespace ChaosMode
             );
 
             //Events
+            enableOrder = Config.Bind<bool>(
+                "Event Settings",
+                "EnableOrder",
+                false,
+                "Enable or disable the Sequencing order event.\nThe order event takes your items and redistributes them similar to the Shrine of Order."
+            );
             purgeRate = Config.Bind<int>(
                 "Event Settings",
                 "PurgeRate",
                 5,
                 "Limits how many items a Purge can take (limited to all but 3).\nPurge will remove *UP TO* PurgeRate of your items. (Set to 0 to disable Purge events.)"
             );
+
+            //I swear I will keep adding config settings until the day I die.
         }
         private static void InitArtifact()
         {
+            //If you're reading this then we're friends now. Also thanks for delving deep into the code. (Kinda anyway)
+
             //Create the new Artifact
             ChaosArtifact = ScriptableObject.CreateInstance<ArtifactDef>();
             ChaosArtifact.cachedName = "ChaosModeArtifact";
             ChaosArtifact.nameToken = "Artifact of ChaosMode";
             ChaosArtifact.descriptionToken = "Randomizes chest drops, spawns bosses on a timer, manipulates items and causes ABSOLUTE CHAOS!";
-            //ChaosArtifact.smallIconSelectedSprite = Addressables.LoadAssetAsync<Sprite>("RoR2/Base/Swarms/texArtifactSwarmsEnabled.png").WaitForCompletion();
-            //ChaosArtifact.smallIconDeselectedSprite = Addressables.LoadAssetAsync<Sprite>("RoR2/Base/Swarms/texArtifactSwarmsDisabled.png").WaitForCompletion();
 
             //AssetBundle Icons
             AssetBundle chaosBundle = AssetBundle.LoadFromStream(Assembly.GetExecutingAssembly().GetManifestResourceStream("chaos.chaosmode_assets"));
@@ -173,6 +210,8 @@ namespace ChaosMode
         }
         private static void OnArtifactEnabled(RunArtifactManager runArtifactManager, ArtifactDef artifactDef)
         {
+            //My professors always told me hooks were important. I think they meant in essays but here works too.
+
             if (artifactDef == ChaosArtifact)
                 if (NetworkServer.active)
                 {
@@ -183,6 +222,8 @@ namespace ChaosMode
         }
         private static void OnArtifactDisabled(RunArtifactManager runArtifactManager, ArtifactDef artifactDef)
         {
+            //Nah I'm done with hooks, take 'em all back!
+
             if (artifactDef == ChaosArtifact)
                 if (NetworkServer.active)
                 {
@@ -191,6 +232,63 @@ namespace ChaosMode
                     On.RoR2.Run.Start -= new On.RoR2.Run.hook_Start(Run_Start);
                 }
         }
+
+        //Used if the artifact mode is turned off - fix this probably!
+        //This was a dumb idea actually!
+        /*
+        void Update()
+        {
+            if (artifactMode.Value) return;
+            if (!multiplayerMode) return;
+
+            NonArtifactGameLoop();
+        }
+        private void NonArtifactGameLoop()
+        {
+            if (!Run.instance) return;
+
+            //First step setup
+            if (!initialized)
+            {
+                oldTimer = 0;
+                spawning = false;
+
+                //Skip step if not in game yet
+                string scene = SceneManager.GetActiveScene().name;
+                if (scene == "lobby") { return; }
+
+                initialized = true;
+                instance.StartCoroutine(instance.RunInit());
+            }
+
+            //Perform action every Timer step
+            float t = Run.instance.GetRunStopwatch();
+            if (Mathf.FloorToInt(t) % (Mathf.Clamp(chaosSpeed.Value, 15, 60)) == 0 & t > 5 & t != oldTimer)
+            {
+                oldTimer = (int)t;
+                if (!spawning)
+                {
+                    spawning = true;
+                    SpawnEveryMinute();
+                    instance.StartCoroutine(instance.FailSafeDelay());
+                }
+            }
+            else
+                spawning = false;
+
+            StartCoroutine(GameLoop());
+        }
+        [ConCommand(commandName = "cm_EnableMultiplayer", flags = ConVarFlags.SenderMustBeServer, helpText = "Use this command to enable the non-artifact version of the mod")]
+        private static void EnableMultiplayer(ConCommandArgs args)
+        {
+            multiplayerMode = true;
+        }
+        [ConCommand(commandName = "cm_DisableMultiplayer", flags = ConVarFlags.SenderMustBeServer, helpText = "Use this command to disable the non-artifact version of the mod")]
+        private static void DisableMultiplayer(ConCommandArgs args)
+        {
+            multiplayerMode = false;
+        }
+        */
 
         //Initialize and start the Chaos Loop
         private static void Run_Start(On.RoR2.Run.orig_Start orig, Run self)
@@ -209,11 +307,12 @@ namespace ChaosMode
             yield return null;
             if (!Run.instance) yield break;
 
+            string scene = SceneManager.GetActiveScene().name;
+
             //First step setup
             if (!initialized)
             {
                 //Skip step if not in game yet
-                string scene = SceneManager.GetActiveScene().name;
                 if (scene == "lobby") { StartCoroutine(GameLoop()); }
 
                 initialized = true;
@@ -222,7 +321,7 @@ namespace ChaosMode
 
             //Perform action every Timer step
             float t = Run.instance.GetRunStopwatch();
-            if (Mathf.FloorToInt(t) % (Mathf.Clamp(chaosSpeed.Value, 15, 60)) == 0 & t > 5 & t != oldTimer)
+            if (Mathf.FloorToInt(t) % (Mathf.Clamp(chaosSpeed.Value, 5, 600)) == 0 & t > 5 & t != oldTimer & scene == "bazaar")
             {
                 oldTimer = (int)t;
                 if (!spawning)
@@ -265,7 +364,7 @@ namespace ChaosMode
             GiveToAllPlayers(item);
 
             //Broadcast confirmation messsage
-            yield return new WaitForSeconds(3);
+            yield return new WaitForSeconds(10);
             Chat.SendBroadcastChat(new Chat.SimpleChatMessage { baseToken = "<color=#bb0011>[CHAOS] The Avatar of Chaos invades!" });
         }
         private IEnumerator FailSafeDelay()
@@ -274,9 +373,24 @@ namespace ChaosMode
             spawning = false;
         }
 
+        //Randomize chest drops using our drop table method
+        private static void ChestBehavior_ItemDrop(On.RoR2.ChestBehavior.orig_ItemDrop orig, ChestBehavior self)
+        {
+            PropertyInfo dropPickupField = typeof(ChestBehavior).GetProperty("dropPickup", BindingFlags.Instance | BindingFlags.Public);
+
+            List<PickupIndex> newRoll = RollType(GetDropTable());
+            PickupIndex item = newRoll[random.Next(0, newRoll.Count)];
+            dropPickupField.SetValue(self, item);
+
+            orig.Invoke(self);
+            return;
+        }
+
         //The Random Chaos
         private static void SpawnEveryMinute()
         {
+            //I'm still incredibly proud of my enemy object system. Perfectly organized as all things should be.
+
             List<SpawnCardData> normalEnemies = new List<SpawnCardData>
             {
                 ADBeetleGuard, ADGreaterWisp, ADGolem, ADTitan, ADParent, ADBigLemurian, ADNullifier,
@@ -308,7 +422,7 @@ namespace ChaosMode
             List<PickupIndex> newRoll = null;
             int type = 0, number = 1;
 
-            switch (GetInstanceTable())
+            switch (SummonDropTable()) //New generic drop table system (shouldn't change much)
             {
                 case 0:
                     //Swarm Spawn
@@ -317,11 +431,14 @@ namespace ChaosMode
                         5, spawnLimit.Value ? maxEnemies.Value : 65536);
                     SummonEnemy(enemy, number);
 
-                    type = GetDropTable(restrictEquipment: true);
-                    newRoll = RollType(GetDropTable());
-                    GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
-                    //if (type != Equipment) GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
-                    //else EquipAllPlayers(random.Next(0, newRoll.Count));
+                    if (giveItems.Value)
+                    {
+                        type = GetDropTable(restrictEquipment: true);
+                        newRoll = RollType(ItemDropTable()); //New generic drop table system (shouldn't change much)
+                        GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
+                        //if (type != Equipment) GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
+                        //else EquipAllPlayers(random.Next(0, newRoll.Count));
+                    }
                     break;
 
                 case 1:
@@ -332,35 +449,26 @@ namespace ChaosMode
                         1, spawnLimit.Value ? maxEnemies.Value : 65536);
                     SummonEnemy(enemy, number);
 
-                    type = GetDropTable(restrictEquipment: true);
-                    newRoll = RollType(GetDropTable());
-                    GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
-                    //if (type != Equipment) GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
-                    //else EquipAllPlayers(random.Next(0, newRoll.Count));
+                    if (giveItems.Value)
+                    {
+                        type = GetDropTable(restrictEquipment: true);
+                        newRoll = RollType(GetDropTable()); //New generic drop table system (shouldn't change much)
+                        GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
+                        //if (type != Equipment) GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
+                        //else EquipAllPlayers(random.Next(0, newRoll.Count));
+                    }
                     break;
 
                 case 2:
                     //Event
-                    List<IEnumerator> events = new List<IEnumerator>() {  instance.JellyfishEvent(), instance.EliteParentEvent(), instance.FinalEncounter(), instance.GainFriend(), instance.SequenceEvent() };
+                    List<IEnumerator> events = new List<IEnumerator>() {  instance.JellyfishEvent(), instance.EliteParentEvent(), instance.FinalEncounter(), instance.GainFriend() };
                     if (purgeRate.Value > 0) events.Add(instance.PurgeAllItems());
+                    if (enableOrder.Value) events.Add(instance.SequenceEvent());
                     if (expansion1) events.AddRange(new List<IEnumerator>() { instance.Corruption(), instance.VoidEncounter() });
 
-                    instance.StartCoroutine(events[random.Next(0, events.Count)]);
+                    instance.StartCoroutine(events[EventDropTable()]); //Uses our new drop table system to weigh events
                     break;
             }
-        }
-
-        //Randomize chest drops using our drop table method
-        private static void ChestBehavior_ItemDrop(On.RoR2.ChestBehavior.orig_ItemDrop orig, ChestBehavior self)
-        {
-            PropertyInfo dropPickupField = typeof(ChestBehavior).GetProperty("dropPickup", BindingFlags.Instance | BindingFlags.Public);
-
-            List<PickupIndex> newRoll = RollType(GetDropTable());
-            PickupIndex item = newRoll[random.Next(0, newRoll.Count)];
-            dropPickupField.SetValue(self, item);
-
-            orig.Invoke(self);
-            return;
         }
 
         //Give items to all network players
@@ -394,6 +502,8 @@ namespace ChaosMode
         }
         private static void EquipAllPlayers(int pickupIndex)
         {
+            //This code worked for like one day and then started crashing every subsequent version of this mod.
+
             //Loop through each player and equip the same equipmentindex
             foreach (PlayerCharacterMasterController playerCharacterMasterController in PlayerCharacterMasterController.instances)
             {
@@ -419,6 +529,8 @@ namespace ChaosMode
         //Enemy methods
         private static void SummonEnemy(SpawnCardData enemyType, int reps)
         {
+            //Oh I see you've made your way done here too. Interesting. Very interesting.
+
             int loop = 0;
             string elementName = "";
             float difficulty = 0, threshold = 1;
@@ -489,6 +601,7 @@ namespace ChaosMode
             };
             DirectorSpawnRequest spawnRequest = new DirectorSpawnRequest(spawnCard, placementRule, new Xoroshiro128Plus((ulong)Run.instance.stageRng.nextUint))
             {
+                //I once forgot this code so Huntress' boomerang thing wouldn't auto target spawns like Grovetender wisps so Grovetenders were actual nightmares
                 teamIndexOverride = new TeamIndex?(!ally ? TeamIndex.Monster : TeamIndex.Player),
                 ignoreTeamMemberLimit = true
             };
@@ -496,6 +609,8 @@ namespace ChaosMode
         }
         private IEnumerator CheckIfEnemyDied(GameObject enemy, int reward = 20)
         {
+            //I think I fixed this problem a long time ago but either way this is a scuffed way to get money from enemies
+
             while (enemy != null)
                 yield return new WaitForSeconds(0.1f);
 
@@ -570,10 +685,19 @@ namespace ChaosMode
         }
         private IEnumerator FinalEncounter()
         {
-            Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+            if (expansion1)
             {
-                baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Mutated event!\nThe King of Nothing loses control!</color>"
-            });
+                Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+                {
+                    baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Mutated event! The King of Nothing loses control!</color>"
+                });
+            } else
+            {
+                Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+                {
+                    baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Empty event! The King of Nothing invades!</color>"
+                });
+            }
 
             foreach (PlayerCharacterMasterController player in PlayerCharacterMasterController.instances)
                 StartCoroutine(Purge(player));
@@ -585,7 +709,7 @@ namespace ChaosMode
             CharacterSpawnCard spawnCard = null;
             spawnCard = Addressables.LoadAssetAsync<CharacterSpawnCard>(ADBrother.location).WaitForCompletion();
             GameObject spawnedInstance = SpawnEnemy(spawnCard, chosen.master.GetBody().transform.position).spawnedInstance;
-            EquipOneElite(spawnedInstance.GetComponent<CharacterMaster>().inventory, ADVoid);
+            if (expansion1) EquipOneElite(spawnedInstance.GetComponent<CharacterMaster>().inventory, ADVoid);
             StartCoroutine(CheckIfEnemyDied(spawnedInstance));
 
             yield return null;
@@ -612,7 +736,7 @@ namespace ChaosMode
         {
             Chat.SendBroadcastChat(new Chat.SimpleChatMessage
             {
-                baseToken = "<color=#bb0011>[Chaos] <color=#ff0000>Purge event!\nYou don't need these, right?</color>"
+                baseToken = "<color=#bb0011>[Chaos] <color=#ff0000>Purge event! You don't need these, right?</color>"
             });
 
             foreach (PlayerCharacterMasterController player in PlayerCharacterMasterController.instances)
@@ -728,9 +852,20 @@ namespace ChaosMode
             yield return null;
         }
 
-        //Rolls and drop tables
+        //Rolls and drop tables (mostly obsolete)
         private static List<PickupIndex> RollType(int item)
         {
+            //I got bored writing creative messages so here's an ASCII cat
+            /*
+                                    /\_____/\
+                                   /  o   o  \
+                                  ( ==  ^  == )
+                                   )         (
+                                  (           )
+                                 ( (  )   (  ) )
+                                (__(__)___(__)__)
+            */
+
             //Return the corresponding roll type per item tier
             List<PickupIndex> rollType = Run.instance.availableTier1DropList;
             switch (item)
@@ -761,7 +896,7 @@ namespace ChaosMode
                         Run.instance.availableVoidTier1DropList, Run.instance.availableVoidTier2DropList,
                         Run.instance.availableVoidTier3DropList, Run.instance.availableVoidBossDropList
                     };
-                    rollType = corruptedList[0];
+                    rollType = corruptedList[VoidDropTable()]; //Apparently I've only been giving out WHITE CORRUPTED ITEMS THIS WHOLE TIME AHGFHHHGHGHSGHGH
                     break;
 
                 default:
@@ -815,6 +950,65 @@ namespace ChaosMode
             return 0;
         }
 
+        //Generic drop table system
+        private static int ItemDropTable(bool restrictVoid = false, bool restrictEquipment = false)
+        {
+            //Whoops, actually          W > G > R > B > L > E > C
+            int[] weights = new int[] {
+                commonRate.Value,
+                uncommonRate.Value,
+                legendRate.Value,
+                bossRate.Value,
+                lunarRate.Value,
+                restrictEquipment ? 15 : 0,
+                expansion1 ? restrictVoid ? 0 : corruptRate.Value : 0
+            };
+            return CreateDropTable(weights);
+        }
+        private static int VoidDropTable()
+        {
+            //In order,                 W > G > R > B
+            int[] weights = new int[] { 40, 35, 20, 5 };
+            return CreateDropTable(weights);
+        }
+        private static int SummonDropTable()
+        {
+            //In order,                 Swarm > Boss > Event
+            int[] weights = new int[] { swarmRate.Value, 50, eventRate.Value };
+            return CreateDropTable(weights);
+        }
+        private static int EventDropTable()
+        {
+            //In order,                 J > E > M > F > P > O > C > V
+            List<int> weights = new List<int>() { 30, 30, 10, 30 }; // Basic weights
+            if (purgeRate.Value > 0) weights.Add(10);
+            if (enableOrder.Value) weights.Add(5);
+            if (expansion1) weights.AddRange(new List<int>() { 15, 15 });
+
+            return CreateDropTable(weights.ToArray());
+        }
+        private static int CreateDropTable(int[] weights)
+        {
+            //Oh a math major are we? Yeah, I was pretty interested in how this stuff works too. I guess we're more than just friends now.
+
+            double strength = 0, check = 0;
+            double[] percentage = new double[weights.Length];
+
+            foreach (int i in weights) strength += i; //Calc the strength
+            for (int i = 0; i < weights.Length; i++) percentage[i] = weights[i] / strength; //Calc the weight
+            double roll = random.NextDouble() * 100; //Should work correctly
+
+            //Pick subset based on weight and order
+            for (int i = 0; i < percentage.Length; i++)
+            {
+                check += percentage[i] * 100; //We want to use percentages
+
+                if (percentage[i] == 0) continue;
+                if (roll < check) return i;
+            }
+            return 0;
+        }
+
         //Addressable Resource Loading
         //New Elite Equipment Locations
         private static EliteEquipment ADFire = new EliteEquipment() { prefix = "Blazing", addressable = "RoR2/Base/EliteFire/EliteFireEquipment.asset" };
@@ -830,6 +1024,7 @@ namespace ChaosMode
         private static EliteEquipment ADYellow = new EliteEquipment() { prefix = "Yellow?", addressable = "RoR2/Junk/EliteYellow/EliteYellowEquipment.asset" };
 
         //Weaker Enemies
+        //I will never let the "Archaic Wisp" die. He will always be one of my favorite enemy types.
         private static SpawnCardData ADBeetle = new SpawnCardData() { name = "Beetle", location = "RoR2/Base/Beetle/cscBeetle.asset", difficultyBase = 0.2f, rewardBase = 5f };
         private static SpawnCardData ADBeetleGuard = new SpawnCardData() { name = "Beetle Guard", location = "RoR2/Base/Beetle/cscBeetleGuard.asset", difficultyBase = 0.5f, rewardBase = 12f };
         private static SpawnCardData ADBeetleQueen = new SpawnCardData() { name = "Beetle Queen", location = "RoR2/Base/Beetle/cscBeetleQueen.asset", difficultyBase = 0.9f, rewardBase = 23f };
@@ -868,6 +1063,7 @@ namespace ChaosMode
         private static SpawnCardData ADScav = new SpawnCardData() { name = "Scavenger", location = "RoR2/Base/Scav/cscScav.asset", difficultyBase = 1.6f, rewardBase = 37f };
 
         //DLC
+        //Yeah I don't know what that "??? Construct" is either.
         private static SpawnCardData ADLarva = new SpawnCardData() { name = "Acid Larva", location = "RoR2/DLC1/AcidLarva/cscAcidLarva.asset", difficultyBase = 0.6f, rewardBase = 10f };
         private static SpawnCardData ADAssassin = new SpawnCardData() { name = "Assassin", location = "RoR2/DLC1/Assassin2/cscAssassin2.asset", difficultyBase = 0.5f, rewardBase = 14f };
         private static SpawnCardData ADPest = new SpawnCardData() { name = "Blind Pest", location = "RoR2/DLC1/FlyingVermin/cscFlyingVermin.asset", difficultyBase = 0.7f, rewardBase = 16f };
@@ -889,6 +1085,8 @@ namespace ChaosMode
 
     class SpawnCardData
     {
+        //Oh hello there. Didn't expect you to make it here of all places. What were you expecting anyway?
+
         public string name { get; set; }
         public string location { get; set; }
         public float difficultyBase { get; set; }
@@ -896,6 +1094,8 @@ namespace ChaosMode
     }
     class EliteEquipment
     {
+        //BOO! Gotcha didn't I! Be honest. Alright... anyway... that's all my messages.
+
         public string prefix { get; set; }
         public string addressable { get; set; }
     }
