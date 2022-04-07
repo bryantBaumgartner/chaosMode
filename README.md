@@ -1,24 +1,25 @@
 # Compatibility
-As of patch 2.1.0 Chaos Mode works with the `Survivors of The Void Expansion!` Currently testing issues with vanilla-compatibility.
+As of patch 2.1.0 Chaos Mode works with the `Survivors of The Void Expansion!` Vanilla-compatible but some testing still required.
 
 # What's Chaos Mode?
-Chaos Mode is a Risk of Rain 2 Artifact mod that adds, well... Chaos. Enabling the artifact causes bosses and swarms to spawn on a timer. Items are randomly dispersed, chests are randomized and events can be triggered that drastically change the way the game is experienced. Server-side and vanilla-compatible.
+Chaos Mode is a Risk of Rain 2 Artifact mod that adds, well... Chaos. Enabling the mod causes bosses and swarms to spawn on a timer. Items are randomly dispersed, chests are randomized and events can be triggered that drastically change the way the game is experienced. Server-side and vanilla-compatible.
 
 # Multiplayer
 As of patch 2.2.0 multiplayer is a bit weird. If you want to use this mod in multiplayer you essentially have two options.
 + Make sure everyone is running a modded client with the same version of the mod installed. Everything should work correctly.
-+ Alternatively, if anyone is playing unmodded, make sure the host has the mod enabled and set the config setting 'ArtifactMode' to 'False.'
-	+ You cannot currently turn off the mod this way without resetting the game (Hopefully I'll fix this later).
++ If anyone is playing unmodded, make sure the host has the mod enabled and set the config setting 'ArtifactMode' to 'False.' The mod will automatically run in the background.
+	+ You cannot currently enable/disable the mod this way without resetting the game (Hopefully I'll fix this later).
 
 The second option is still being tested so if you experience issues please let me know.
 
 # Configuration
-All settings are intended to work at their default. Raising them can cause unnecessary lag or crashing (especially when combined with the Survivors of The Void DLC). Adjust carefully. (Updating from a version before v2.1.0 may require you to delete and recreate your config file)
+All settings are intended to work at their default. Raising them can cause unnecessary lag or crashing (especially when combined with the Survivors of The Void DLC). Adjust carefully. (Updating from a version before v2.1.0 may require you to delete and recreate your config file, as some settings were drastically changed)
 
 Setting | Range | Default | Effect
 ---|---:|---:|---
 ArtifactMode | True/False | True | Enables/disables the mod as an artifact. Turn off if playing multiplayer with unmodded clients.
-ChaosSpeed | 15 - 60 | 60 | Time in seconds before Chaos enemies spawn. Caps at every 15 seconds.
+ChaosSpeed | 15 - 6000 | 60 | Time in seconds before Chaos enemies spawn. Caps at every 15 seconds.
+GiveItems | True/False | True | Enables or disables free items when an event triggers.
 CommonRate | 0 - 100 | 20 | Raises the likelyhood that a common item will be rolled.
 UncommonRate | 0 - 100 | 15 | Raises the likelyhood that an uncommon item will be rolled.
 LegendRate | 0 - 100 | 10 | Raises the likelyhood that a legendary item will be rolled.
@@ -29,16 +30,21 @@ SwarmRate | 0 - 100 | 35 | Raises the likelyhood of spawning low-tier swarms.
 EventRate | 0 - 100 | 15 | Raises the likelyhood that special "Chaos Events" are triggered.
 AmbushRate | 0 - 100 | 30 | Raises the likelyhood of spawning high-tier boss enemies.
 EliteRate | 0 - 100 | 50 | Raises the likelyhood of spawning elite enemies.
-SpawnLimit| True/False | True | Limits the amount of enemies that the mod can spawn. WARNING! TURNING THIS OFF CAN CAUSE LAG OR CRASHES!
+SpawnLimit | True/False | True | Limits the amount of enemies that the mod can spawn. WARNING! TURNING THIS OFF CAN CAUSE LAG OR CRASHES!
 MaxEnemies | 1 - 50 | 20 | Maximum amount of enemies that can spawn at once. Ignored if SpawnLimit is 'False'.
 SwarmAggression | 1 - 5 | 1 | Multiplies the average number of enemies spawned in swarms.
-EnableOrder| True/False | False | Enables or disables the order event wherein your items are redistributed.
-PurgeRate| 0 - 10 | 5 | Limits how many items a Purge Event can take from players. Always keeps at least 3 items.
+EnableOrder | True/False | False | Enables or disables the order event wherein your items are redistributed.
+PurgeRate | 0 - 10 | 5 | Limits how many items a Purge Event can take from players. Always keeps at least 3 items.
 
 # Contact
-If you have questions or problems, you can leave them in the [issues](https://github.com/bryantBaumgartner/chaosMode/issues) or reach out to me on Discord at `Pocket#4156` either in DMs or the [RoR2 Modding Discord](https://discord.gg/JDbYRZCGbs). I'm usually pretty good about responding to messages.
+If you have questions or problems, you can leave them in the [issues](https://github.com/bryantBaumgartner/chaosMode/issues) or reach out to me on Discord at `Pocket#4156` either through DMs or the [RoR2 Modding Discord](https://discord.gg/JDbYRZCGbs). I'm pretty good about responding to messages.
 
 # Changelog
+2.2.3
++ Optimized multiplayer for vanilla clients.
++ Fixed a bug causing infinite spawns in the bazaar.
++ Added a new setting to enable/disable free items.
+
 2.2.2
 + Added a new setting to enable/disable Artifact mode (currently for testing vanilla-compatibility issues).
 
