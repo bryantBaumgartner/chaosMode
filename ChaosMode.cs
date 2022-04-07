@@ -15,7 +15,7 @@ using UnityEngine.SceneManagement;
 namespace ChaosMode
 {
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Pocket.ChaosMode", "ChaosMode", "2.2.3")]
+    [BepInPlugin("com.Pocket.ChaosMode", "ChaosMode", "2.2.4")]
     //[NetworkCompatibility(CompatibilityLevel.NoNeedForSync, VersionStrictness.EveryoneNeedSameModVersion)]
     internal class ChaosMode : BaseUnityPlugin
     {
@@ -321,7 +321,7 @@ namespace ChaosMode
 
             //Perform action every Timer step
             float t = Run.instance.GetRunStopwatch();
-            if (Mathf.FloorToInt(t) % (Mathf.Clamp(chaosSpeed.Value, 5, 600)) == 0 & t > 5 & t != oldTimer & scene == "bazaar")
+            if (Mathf.FloorToInt(t) % (Mathf.Clamp(chaosSpeed.Value, 5, 600)) == 0 & t > 5 & t != oldTimer & scene != "bazaar")
             {
                 oldTimer = (int)t;
                 if (!spawning)
