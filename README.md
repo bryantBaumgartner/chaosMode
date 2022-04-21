@@ -19,7 +19,9 @@ Setting | Range | Default | Effect
 ---|---:|---:|---
 ArtifactMode | True/False | True | Enables/disables the mod as an artifact. Turn off if playing multiplayer with unmodded clients.
 ChaosSpeed | 15 - 6000 | 60 | Time in seconds before Chaos enemies spawn. Caps at every 15 seconds.
+StartingItems | True/False | True | Gives items to all players at the start of each Run.
 GiveItems | True/False | True | Enables or disables free items when an event triggers.
+RandomShrines | True/False | True | Enables or disables all drop types for Shrines of Chance.
 CommonRate | 0 - 100 | 20 | Raises the likelyhood that a common item will be rolled.
 UncommonRate | 0 - 100 | 15 | Raises the likelyhood that an uncommon item will be rolled.
 LegendRate | 0 - 100 | 10 | Raises the likelyhood that a legendary item will be rolled.
@@ -40,13 +42,19 @@ PurgeRate | 0 - 10 | 5 | Limits how many items a Purge Event can take from playe
 If you have questions or problems, you can leave them in the [issues](https://github.com/bryantBaumgartner/chaosMode/issues) or reach out to me on Discord at `Pocket#4156` either through DMs or the [RoR2 Modding Discord](https://discord.gg/JDbYRZCGbs). I'm pretty good about responding to messages.
 
 # Changelog
-2.2.3
+2.3.0
++ Randomized Shrines of Chance to include all drop types (based on drop settings). Guarantees drops when interacting. (May cause conflicts with other Shrine mods)
++ Weighted Elite types.
++ Added a setting to toggle randomized Shrines.
++ Added a setting to toggle starting items.
+
+2.2.4
 + Optimized multiplayer for vanilla clients.
 + Fixed a bug causing infinite spawns in the bazaar.
 + Added a new setting to enable/disable free items.
 
 2.2.2
-+ Added a new setting to enable/disable Artifact mode (currently for testing vanilla-compatibility issues).
++ Added a new setting to enable/disable Artifact mode.
 
 2.2.1 
 + Added a new setting to enable/disable the Sequencing event.
@@ -67,34 +75,4 @@ If you have questions or problems, you can leave them in the [issues](https://gi
 + Reworked enemy spawn system. 
 + Changed and added new settings (this may require deleting and remaking your config file).
 
-2.0.5
-+ Fixed an issue that broke the mod when distributing Equipment to players.
-
-2.0.4
-+ Fixed an issue where items were distributed 0 times.
-
-2.0.3
-+ Updated dependancies (Whoops).
-
-2.0.2
-+ Fixed a bug that prevented Elite enemies from spawning.
-+ Added new Elite type: Perfected.
-+ Fixed a bug that activated multiple events at once.
-+ Reworked chest drop system. 
-+ Added new settings.
-
-2.0.1
-+ Compatibility with Survivors of The Void Expansion.
-+ Corrupted items added to item pools. (requires Survivors of the Void)
-+ No longer vanilla-compatible.
-
-1.0.3
-+ Fixed elite enemy bug.
-+ Chest drops are balanced and randomized to include Boss and Lunar items.
-+ Added new settings.
-
-1.0.2
-+ Enemies can now spawn as Elites.   
-
-1.0.1
-+ Initial Release
+Earlier version details can be found on the [Github page](https://github.com/bryantBaumgartner/chaosMode).

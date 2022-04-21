@@ -1,7 +1,7 @@
 ﻿{
     "author_name": "Pocket",
     "name": "ChaosMode",
-    "version_number": "2.2.3",
+    "version_number": "2.3.0",
     "website_url": "https://github.com/bryantBaumgartner/chaosMode",
     "description": "The Ultimate Challenge Mode - Now an Artifact! Server-side and vanilla-compatible!",
     "dependencies": [ "bbepis-BepInExPack-3.0.0", "tristanmcpherson-R2API-4.0.11" ]
