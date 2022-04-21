@@ -4,6 +4,7 @@ using R2API;
 using R2API.Utils;
 using RoR2;
 using RoR2.ExpansionManagement;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -15,15 +16,18 @@ using UnityEngine.SceneManagement;
 namespace ChaosMode
 {
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Pocket.ChaosMode", "ChaosMode", "2.2.4")]
-    //[NetworkCompatibility(CompatibilityLevel.NoNeedForSync, VersionStrictness.EveryoneNeedSameModVersion)]
+    [BepInPlugin("com.Pocket.ChaosMode", "ChaosMode", "2.4.0")]
+    [NetworkCompatibility(CompatibilityLevel.NoNeedForSync, VersionStrictness.EveryoneNeedSameModVersion)]
     internal class ChaosMode : BaseUnityPlugin
     {
         //I got bored and put secret messages all over this code. Shame you can't see them in DnSpy...
 
         public static ConfigEntry<bool> artifactMode { get; set; }
         public static ConfigEntry<int> chaosSpeed { get; set; }
+        public static ConfigEntry<bool> startingItems { get; set; }
         public static ConfigEntry<bool> giveItems { get; set; }
+        public static ConfigEntry<bool> randomShrines { get; set; }
+        public static ConfigEntry<bool> randomSpecialChests { get; set; }
         public static ConfigEntry<int> commonRate { get; set; }
         public static ConfigEntry<int> uncommonRate { get; set; }
         public static ConfigEntry<int> legendRate { get; set; }
@@ -41,6 +45,7 @@ namespace ChaosMode
         public static ConfigEntry<int> purgeRate { get; set; }
 
         private static int oldTimer;
+        private static float directorValue;
         private static bool initialized, spawning, expansion1, multiplayerMode = true;
         private static ChaosMode instance;
         private static ArtifactDef ChaosArtifact;
@@ -62,8 +67,7 @@ namespace ChaosMode
             else
             {
                 //Add them by default for now
-                On.RoR2.Run.Start += new On.RoR2.Run.hook_Start(Run_Start);
-                On.RoR2.ChestBehavior.ItemDrop += new On.RoR2.ChestBehavior.hook_ItemDrop(ChestBehavior_ItemDrop);
+                AddHooks();
             }
         }
         private void InitConfig()
@@ -84,11 +88,32 @@ namespace ChaosMode
                 "Raises the speed that Chaos Mode activates.\nIndicates how many seconds to wait before each Event or Spawn."
             );
 
+            startingItems = Config.Bind<bool>(
+                "Chaos Settings",
+                "StartingItems",
+                true,
+                "Start each run with 3 Common items, 2 Uncommon items and 1 Legendary item.\nApplies to all players."
+            );
+
             giveItems = Config.Bind<bool>(
                 "Chaos Settings",
                 "GiveItems",
                 true,
                 "Turn random item distribution on or off.\nItems either will or won't be added to your inventory when an event triggers."
+            );
+
+            randomShrines = Config.Bind<bool>(
+                "Chaos Settings",
+                "RandomShrines",
+                true,
+                "Randomizes drop pools for Shrines of Chance.\nItems either will or won't be added to your inventory when an event triggers."
+            );
+
+            randomSpecialChests = Config.Bind<bool>(
+                "Chaos Settings",
+                "RandomSpecialChests",
+                false,
+                "Randomizes drop pools for Special Chest types.\nItems dropped from Legendary Chests, Lunar Pods, Equipment Barrels, and Void Chests are randomized."
             );
 
             //Items
@@ -145,7 +170,7 @@ namespace ChaosMode
             ambushRate = Config.Bind<int>(
                 "Spawn Settings",
                 "AmbushRate",
-                30,
+                15,
                 "Boosts how often higher-tier boss enemies are spawned (not during swarms).\nRoughly AmbushRate% of enemies."
             );
             eliteRate = Config.Bind<int>(
@@ -216,8 +241,7 @@ namespace ChaosMode
                 if (NetworkServer.active)
                 {
                     //Add our hooks
-                    On.RoR2.ChestBehavior.ItemDrop += new On.RoR2.ChestBehavior.hook_ItemDrop(ChestBehavior_ItemDrop);
-                    On.RoR2.Run.Start += new On.RoR2.Run.hook_Start(Run_Start);
+                    AddHooks();
                 }
         }
         private static void OnArtifactDisabled(RunArtifactManager runArtifactManager, ArtifactDef artifactDef)
@@ -227,68 +251,37 @@ namespace ChaosMode
             if (artifactDef == ChaosArtifact)
                 if (NetworkServer.active)
                 {
-                    //Add our hooks
-                    On.RoR2.ChestBehavior.ItemDrop -= new On.RoR2.ChestBehavior.hook_ItemDrop(ChestBehavior_ItemDrop);
-                    On.RoR2.Run.Start -= new On.RoR2.Run.hook_Start(Run_Start);
+                    //Remove our hooks
+                    RemoveHooks();
                 }
         }
-
-        //Used if the artifact mode is turned off - fix this probably!
-        //This was a dumb idea actually!
-        /*
-        void Update()
+        private static void AddHooks()
         {
-            if (artifactMode.Value) return;
-            if (!multiplayerMode) return;
-
-            NonArtifactGameLoop();
+            On.RoR2.ChestBehavior.ItemDrop += new On.RoR2.ChestBehavior.hook_ItemDrop(ChestBehavior_ItemDrop);
+            if (randomShrines.Value) On.RoR2.ShrineChanceBehavior.AddShrineStack += new On.RoR2.ShrineChanceBehavior.hook_AddShrineStack(ShrineChanceBehavior_AddShrineStack);
+            On.RoR2.Run.Start += new On.RoR2.Run.hook_Start(Run_Start);
         }
-        private void NonArtifactGameLoop()
+        private static void RemoveHooks()
         {
-            if (!Run.instance) return;
-
-            //First step setup
-            if (!initialized)
-            {
-                oldTimer = 0;
-                spawning = false;
-
-                //Skip step if not in game yet
-                string scene = SceneManager.GetActiveScene().name;
-                if (scene == "lobby") { return; }
-
-                initialized = true;
-                instance.StartCoroutine(instance.RunInit());
-            }
-
-            //Perform action every Timer step
-            float t = Run.instance.GetRunStopwatch();
-            if (Mathf.FloorToInt(t) % (Mathf.Clamp(chaosSpeed.Value, 15, 60)) == 0 & t > 5 & t != oldTimer)
-            {
-                oldTimer = (int)t;
-                if (!spawning)
-                {
-                    spawning = true;
-                    SpawnEveryMinute();
-                    instance.StartCoroutine(instance.FailSafeDelay());
-                }
-            }
-            else
-                spawning = false;
-
-            StartCoroutine(GameLoop());
+            On.RoR2.ChestBehavior.ItemDrop -= new On.RoR2.ChestBehavior.hook_ItemDrop(ChestBehavior_ItemDrop);
+            if (randomShrines.Value) On.RoR2.ShrineChanceBehavior.AddShrineStack -= new On.RoR2.ShrineChanceBehavior.hook_AddShrineStack(ShrineChanceBehavior_AddShrineStack);
+            On.RoR2.Run.Start -= new On.RoR2.Run.hook_Start(Run_Start);
         }
+
+        //Used if the artifact mode is turned off - still in testing!
+        //Add a conCommand to enable/disable the non-artifact mod mode
         [ConCommand(commandName = "cm_EnableMultiplayer", flags = ConVarFlags.SenderMustBeServer, helpText = "Use this command to enable the non-artifact version of the mod")]
         private static void EnableMultiplayer(ConCommandArgs args)
         {
+            if (!multiplayerMode) AddHooks();
             multiplayerMode = true;
         }
         [ConCommand(commandName = "cm_DisableMultiplayer", flags = ConVarFlags.SenderMustBeServer, helpText = "Use this command to disable the non-artifact version of the mod")]
         private static void DisableMultiplayer(ConCommandArgs args)
         {
+            if (multiplayerMode) RemoveHooks();
             multiplayerMode = false;
         }
-        */
 
         //Initialize and start the Chaos Loop
         private static void Run_Start(On.RoR2.Run.orig_Start orig, Run self)
@@ -306,7 +299,6 @@ namespace ChaosMode
         {
             yield return null;
             if (!Run.instance) yield break;
-
             string scene = SceneManager.GetActiveScene().name;
 
             //First step setup
@@ -345,23 +337,26 @@ namespace ChaosMode
             //Use the current seed of the game for consistency
             random = new System.Random((int)Run.instance.seed);
 
-            //Give initial items - Update this?
-            List<PickupIndex> newRoll = RollType(0);
-            PickupIndex item = newRoll[random.Next(0, newRoll.Count)];
-            for (int i = 0; i < 3; i++)
+            if (startingItems.Value)
             {
+                //Give initial items - Update this?
+                List<PickupIndex> newRoll = RollType(0);
+                PickupIndex item = newRoll[random.Next(0, newRoll.Count)];
+                for (int i = 0; i < 3; i++)
+                {
+                    item = newRoll[random.Next(0, newRoll.Count)];
+                    GiveToAllPlayers(item);
+                }
+                newRoll = RollType(1);
+                for (int i = 0; i < 2; i++)
+                {
+                    item = newRoll[random.Next(0, newRoll.Count)];
+                    GiveToAllPlayers(item);
+                }
+                newRoll = RollType(2);
                 item = newRoll[random.Next(0, newRoll.Count)];
                 GiveToAllPlayers(item);
             }
-            newRoll = RollType(1);
-            for (int i = 0; i < 2; i++)
-            {
-                item = newRoll[random.Next(0, newRoll.Count)];
-                GiveToAllPlayers(item);
-            }
-            newRoll = RollType(2);
-            item = newRoll[random.Next(0, newRoll.Count)];
-            GiveToAllPlayers(item);
 
             //Broadcast confirmation messsage
             yield return new WaitForSeconds(10);
@@ -376,7 +371,10 @@ namespace ChaosMode
         //Randomize chest drops using our drop table method
         private static void ChestBehavior_ItemDrop(On.RoR2.ChestBehavior.orig_ItemDrop orig, ChestBehavior self)
         {
+            if (!CheckChestTypeIsValid(self)) return;
+
             PropertyInfo dropPickupField = typeof(ChestBehavior).GetProperty("dropPickup", BindingFlags.Instance | BindingFlags.Public);
+            if ((PickupIndex)dropPickupField.GetValue(self) == PickupIndex.none) { return; }
 
             List<PickupIndex> newRoll = RollType(GetDropTable());
             PickupIndex item = newRoll[random.Next(0, newRoll.Count)];
@@ -385,6 +383,52 @@ namespace ChaosMode
             orig.Invoke(self);
             return;
         }
+        private static void ShrineChanceBehavior_AddShrineStack(On.RoR2.ShrineChanceBehavior.orig_AddShrineStack orig, ShrineChanceBehavior self, Interactor activator)
+        {
+            //Increase the shrine purchase count
+            int purchaseCount = self.GetFieldValue<int>("successfulPurchaseCount") + 1;
+            self.SetFieldValue<int>("successfulPurchaseCount", purchaseCount);
+
+            //Create a pickupindex
+            List<PickupIndex> newRoll = RollType(GetDropTable(restrictEquipment: true));
+            PickupIndex item = newRoll[random.Next(0, newRoll.Count)];
+            PickupDropletController.CreatePickupDroplet(item, self.dropletOrigin.position, self.dropletOrigin.forward * 20f);
+
+            //Send message and add actions
+            Chat.SendBroadcastChat(new Chat.SubjectFormatChatMessage
+            {
+                subjectAsCharacterBody = activator.GetComponent<CharacterBody>(),
+                baseToken = "SHRINE_CHANCE_SUCCESS_MESSAGE"
+            });
+            Action<bool, Interactor> action = self.GetFieldValue<Action<bool, Interactor>>("onShrineChancePurchaseGlobal");
+            if (action != null)
+            {
+                action(true, activator);
+            }
+            self.SetFieldValue<bool>("waitingForRefresh", true);
+            self.SetFieldValue<float>("refreshTimer", 2f);
+            /*EffectManager.SpawnEffect(LegacyResourcesAPI.Load<GameObject>("Prefabs/Effects/ShrineUseEffect"), new EffectData
+            {
+                origin = self.transform.localPosition,
+                rotation = Quaternion.identity,
+                scale = 1f,
+                color = self.GetFieldValue<Color>("shrineColor")
+            }, true); */
+            if (self.GetFieldValue<int>("successfulPurchaseCount") >= self.maxPurchaseCount)
+            {
+                self.symbolTransform.gameObject.SetActive(false);
+            }
+
+            //orig.Invoke(self, activator);
+            return;
+        }
+        private static bool CheckChestTypeIsValid(ChestBehavior self)
+        {
+            if (randomSpecialChests.Value) return true;
+
+            String chestType = self.gameObject.name.Replace("Clone", "").Trim();
+            return (chestType != "EquipmentBarrel") && (chestType != "LunarPod") && (chestType != "VoidChest") && (chestType != "GoldChest");
+        } 
 
         //The Random Chaos
         private static void SpawnEveryMinute()
@@ -393,12 +437,12 @@ namespace ChaosMode
 
             List<SpawnCardData> normalEnemies = new List<SpawnCardData>
             {
-                ADBeetleGuard, ADGreaterWisp, ADGolem, ADTitan, ADParent, ADBigLemurian, ADNullifier,
+                ADBeetleGuard, ADGreaterWisp, ADGolem, ADTitan, ADParent, ADBigLemurian,
                 ADRoboBall, ADTemplar, ADArchWisp, ADBeetleQueen, ADLunarGolem, ADLunarWisp
             };
             List<SpawnCardData> heavyEnemies = new List<SpawnCardData>
             {
-                ADBeetleQueen, ADTitan, ADTitanGold, ADOverlord, ADMagmaWorm, ADOverWorm,
+                ADBeetleQueen, ADTitan, ADTitanGold, ADOverlord, ADMagmaWorm, ADOverWorm, ADNullifier,
                 ADDunestrider, ADGhibli, ADGrandparent, ADMagmaWorm, ADBrother, ADScav
             };
             List<SpawnCardData> swarmEnemies = new List<SpawnCardData>
@@ -422,6 +466,9 @@ namespace ChaosMode
             List<PickupIndex> newRoll = null;
             int type = 0, number = 1;
 
+            //Increment the pseudo-director value for buying enemies
+            directorValue = 0.3f + Run.instance.GetDifficultyScaledCost(1) / 10f;
+
             switch (SummonDropTable()) //New generic drop table system (shouldn't change much)
             {
                 case 0:
@@ -443,12 +490,12 @@ namespace ChaosMode
 
                 case 1:
                     //Spawn Single Enemy
-                    int difficultyBase = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(1) - 1, 0, ambushRate.Value); //This should scale the rate of higher tier enemies over time
-                    enemy = (random.Next(0, 100 - difficultyBase) < ambushRate.Value) ? heavyEnemies[random.Next(0, heavyEnemies.Count)] : normalEnemies[random.Next(0, normalEnemies.Count)];
-                    number = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(random.Next(1, 3)),
-                        1, spawnLimit.Value ? maxEnemies.Value : 65536);
+                    //int difficultyBase = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(1) - 1, 0, ambushRate.Value); //This should scale the rate of higher tier enemies over time
+                    //enemy = (random.Next(0, 100 - difficultyBase) < ambushRate.Value) ? heavyEnemies[random.Next(0, heavyEnemies.Count)] : normalEnemies[random.Next(0, normalEnemies.Count)];
+                    enemy = normalEnemies[random.Next(0, normalEnemies.Count)];
+                    number = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(random.Next(1, 3)), 1, spawnLimit.Value ? maxEnemies.Value : 65536);
                     SummonEnemy(enemy, number);
-
+                    
                     if (giveItems.Value)
                     {
                         type = GetDropTable(restrictEquipment: true);
@@ -467,6 +514,23 @@ namespace ChaosMode
                     if (expansion1) events.AddRange(new List<IEnumerator>() { instance.Corruption(), instance.VoidEncounter() });
 
                     instance.StartCoroutine(events[EventDropTable()]); //Uses our new drop table system to weigh events
+                    break;
+
+                case 3:
+                    //Spawn Boss Enemy
+                    //int difficultyBase = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(1) - 1, 0, ambushRate.Value); //This should scale the rate of higher tier enemies over time
+                    enemy = heavyEnemies[random.Next(0, heavyEnemies.Count)];
+                    number = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(1), 1, spawnLimit.Value ? maxEnemies.Value : 65536);
+                    SummonEnemy(enemy, number);
+
+                    if (giveItems.Value)
+                    {
+                        type = GetDropTable(restrictEquipment: true);
+                        newRoll = RollType(GetDropTable()); //New generic drop table system (shouldn't change much)
+                        GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
+                        //if (type != Equipment) GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
+                        //else EquipAllPlayers(random.Next(0, newRoll.Count));
+                    }
                     break;
             }
         }
@@ -541,12 +605,12 @@ namespace ChaosMode
 
             //Threshold gets lower, until it's at 0.5f
             threshold = 1.9f - (((float)eliteRate.Value / 100f) * 1.5f);
-            difficulty = Mathf.Clamp(2 - Mathf.Clamp((Run.instance.GetDifficultyScaledCost(reps) * enemyType.difficultyBase * Random.Range(0.7f, 1.3f)) / Run.instance.GetDifficultyScaledCost(reps), 0.5f, 2), 0.5f, 2);
+            difficulty = Mathf.Clamp(2 - Mathf.Clamp((Run.instance.GetDifficultyScaledCost(reps) * enemyType.difficultyBase * (random.Next(7, 13) / 10f)) / Run.instance.GetDifficultyScaledCost(reps), 0.5f, 2), 0.5f, 2);
             System.Console.WriteLine("[Chaos Log] Difficulty is {0} >= Elite Threshold is {1}", difficulty, threshold);
 
             //Get an element and bool based on the difficulty
             bool getElement = difficulty >= threshold ? random.Next(0, 2) == 0 ? true : false : false;
-            EliteEquipment elite = eliteTypes[Random.Range(0, eliteTypes.Count)];
+            EliteEquipment elite = eliteTypes[EliteDropTable()];
 
             //Failsafe in case the SpawnCard doesn't exist
             try
@@ -973,8 +1037,8 @@ namespace ChaosMode
         }
         private static int SummonDropTable()
         {
-            //In order,                 Swarm > Boss > Event
-            int[] weights = new int[] { swarmRate.Value, 50, eventRate.Value };
+            //In order,                 Swarm > Normal > Event > Boss
+            int[] weights = new int[] { swarmRate.Value, Mathf.Clamp(100 - ambushRate.Value - swarmRate.Value, 0, 100), eventRate.Value, Mathf.Clamp(ambushRate.Value + Run.instance.GetDifficultyScaledCost(1), 0, 100) };
             return CreateDropTable(weights);
         }
         private static int EventDropTable()
@@ -985,6 +1049,13 @@ namespace ChaosMode
             if (enableOrder.Value) weights.Add(5);
             if (expansion1) weights.AddRange(new List<int>() { 15, 15 });
 
+            return CreateDropTable(weights.ToArray());
+        }
+        private static int EliteDropTable()
+        {
+            //In order,                 F > I > L > G > Ma > P > Me > V  
+            List<int> weights = new List<int>() { 22, 22, 21, 15, 10, 5 }; // Basic weights
+            if (expansion1) weights.AddRange(new List<int>() { 25, 5 });
             return CreateDropTable(weights.ToArray());
         }
         private static int CreateDropTable(int[] weights)
@@ -1025,29 +1096,29 @@ namespace ChaosMode
 
         //Weaker Enemies
         //I will never let the "Archaic Wisp" die. He will always be one of my favorite enemy types.
-        private static SpawnCardData ADBeetle = new SpawnCardData() { name = "Beetle", location = "RoR2/Base/Beetle/cscBeetle.asset", difficultyBase = 0.2f, rewardBase = 5f };
-        private static SpawnCardData ADBeetleGuard = new SpawnCardData() { name = "Beetle Guard", location = "RoR2/Base/Beetle/cscBeetleGuard.asset", difficultyBase = 0.5f, rewardBase = 12f };
-        private static SpawnCardData ADBeetleQueen = new SpawnCardData() { name = "Beetle Queen", location = "RoR2/Base/Beetle/cscBeetleQueen.asset", difficultyBase = 0.9f, rewardBase = 23f };
-        private static SpawnCardData ADLemurian = new SpawnCardData() { name = "Lemurian", location = "RoR2/Base/Lemurian/cscLemurian.asset", difficultyBase = 0.9f, rewardBase = 23f };
+        private static SpawnCardData ADBeetle = new SpawnCardData() { name = "Beetle", location = "RoR2/Base/Beetle/cscBeetle.asset", difficultyBase = 0.1f, rewardBase = 5f };
+        private static SpawnCardData ADBeetleGuard = new SpawnCardData() { name = "Beetle Guard", location = "RoR2/Base/Beetle/cscBeetleGuard.asset", difficultyBase = 0.4f, rewardBase = 12f };
+        private static SpawnCardData ADBeetleQueen = new SpawnCardData() { name = "Beetle Queen", location = "RoR2/Base/Beetle/cscBeetleQueen.asset", difficultyBase = 1f, rewardBase = 23f };
+        private static SpawnCardData ADLemurian = new SpawnCardData() { name = "Lemurian", location = "RoR2/Base/Lemurian/cscLemurian.asset", difficultyBase = 0.2f, rewardBase = 23f };
         private static SpawnCardData ADBigLemurian = new SpawnCardData() { name = "Elder Lemurian", location = "RoR2/Base/LemurianBruiser/cscLemurianBruiser.asset", difficultyBase = 0.9f, rewardBase = 23f };
-        private static SpawnCardData ADBell = new SpawnCardData() { name = "Brass Contraption", location = "RoR2/Base/Bell/cscBell.asset", difficultyBase = 0.7f, rewardBase = 16f };
-        private static SpawnCardData ADBison = new SpawnCardData() { name = "Bison", location = "RoR2/Base/Bison/cscBison.asset", difficultyBase = 0.4f, rewardBase = 9f };
-        private static SpawnCardData ADTemplar = new SpawnCardData() { name = "Clay Templar", location = "RoR2/Base/ClayBruiser/cscClayBruiser.asset", difficultyBase = 1.0f, rewardBase = 21f };
-        private static SpawnCardData ADApothecary = new SpawnCardData() { name = "Clay Apothecary", location = "RoR2/DLC1/ClayGrenadier/cscClayGrenadier.asset", difficultyBase = 0.9f, rewardBase = 18f };
-        private static SpawnCardData ADGolem = new SpawnCardData() { name = "Stone Golem", location = "RoR2/Base/Golem/cscGolem.asset", difficultyBase = 0.5f, rewardBase = 10f };
-        private static SpawnCardData ADWisp = new SpawnCardData() { name = "Lesser Wisp", location = "RoR2/Base/Wisp/cscLesserWisp.asset", difficultyBase = 0.2f, rewardBase = 4f };
-        private static SpawnCardData ADGreaterWisp = new SpawnCardData() { name = "Greater Wisp", location = "RoR2/Base/GreaterWisp/cscGreaterWisp.asset", difficultyBase = 0.8f, rewardBase = 14f };
-        private static SpawnCardData ADJellyfish = new SpawnCardData() { name = "Jellyfish", location = "RoR2/Base/Jellyfish/cscJellyfish.asset", difficultyBase = 0.3f, rewardBase = 7f };
-        private static SpawnCardData ADMushroom = new SpawnCardData() { name = "Mini Mushroom", location = "RoR2/Base/MiniMushroom/cscMiniMushroom.asset", difficultyBase = 1.4f, rewardBase = 19f };
+        private static SpawnCardData ADBell = new SpawnCardData() { name = "Brass Contraption", location = "RoR2/Base/Bell/cscBell.asset", difficultyBase = 0.8f, rewardBase = 16f };
+        private static SpawnCardData ADBison = new SpawnCardData() { name = "Bison", location = "RoR2/Base/Bison/cscBison.asset", difficultyBase = 0.3f, rewardBase = 9f };
+        private static SpawnCardData ADTemplar = new SpawnCardData() { name = "Clay Templar", location = "RoR2/Base/ClayBruiser/cscClayBruiser.asset", difficultyBase = 0.9f, rewardBase = 21f };
+        private static SpawnCardData ADApothecary = new SpawnCardData() { name = "Clay Apothecary", location = "RoR2/DLC1/ClayGrenadier/cscClayGrenadier.asset", difficultyBase = 0.8f, rewardBase = 18f };
+        private static SpawnCardData ADGolem = new SpawnCardData() { name = "Stone Golem", location = "RoR2/Base/Golem/cscGolem.asset", difficultyBase = 0.4f, rewardBase = 10f };
+        private static SpawnCardData ADWisp = new SpawnCardData() { name = "Lesser Wisp", location = "RoR2/Base/Wisp/cscLesserWisp.asset", difficultyBase = 0.1f, rewardBase = 4f };
+        private static SpawnCardData ADGreaterWisp = new SpawnCardData() { name = "Greater Wisp", location = "RoR2/Base/GreaterWisp/cscGreaterWisp.asset", difficultyBase = 0.7f, rewardBase = 14f };
+        private static SpawnCardData ADJellyfish = new SpawnCardData() { name = "Jellyfish", location = "RoR2/Base/Jellyfish/cscJellyfish.asset", difficultyBase = 0.2f, rewardBase = 7f };
+        private static SpawnCardData ADMushroom = new SpawnCardData() { name = "Mini Mushroom", location = "RoR2/Base/MiniMushroom/cscMiniMushroom.asset", difficultyBase = 0.9f, rewardBase = 19f };
         private static SpawnCardData ADVulture = new SpawnCardData() { name = "Alloy Vulture", location = "RoR2/Base/Vulture/cscVulture.asset", difficultyBase = 0.7f, rewardBase = 14f };
         private static SpawnCardData ADImp = new SpawnCardData() { name = "Imp", location = "RoR2/Base/Imp/cscImp.asset", difficultyBase = 0.6f, rewardBase = 16f };
-        private static SpawnCardData ADParent = new SpawnCardData() { name = "Parent", location = "RoR2/Base/Parent/cscParent.asset", difficultyBase = 1.2f, rewardBase = 23f };
+        private static SpawnCardData ADParent = new SpawnCardData() { name = "Parent", location = "RoR2/Base/Parent/cscParent.asset", difficultyBase = 0.9f, rewardBase = 23f };
         private static SpawnCardData ADLunarGolem = new SpawnCardData() { name = "Lunar Chimera", location = "RoR2/Base/LunarGolem/cscLunarGolem.asset", difficultyBase = 1.1f, rewardBase = 25f };
         private static SpawnCardData ADLunarWisp = new SpawnCardData() { name = "Lunar Chimera", location = "RoR2/Base/LunarWisp/cscLunarWisp.asset", difficultyBase = 1.3f, rewardBase = 27f };
         private static SpawnCardData ADLunarBomb = new SpawnCardData() { name = "Lunar Chimera", location = "RoR2/Base/LunarExploder/cscLunarExploder.asset", difficultyBase = 0.8f, rewardBase = 19f };
         private static SpawnCardData ADNullifier = new SpawnCardData() { name = "Void Reaver", location = "RoR2/Base/Nullifier/cscNullifier.asset", difficultyBase = 1.5f, rewardBase = 32f };
-        private static SpawnCardData ADArchWisp = new SpawnCardData() { name = "Archaic Wisp", location = "RoR2/Junk/ArchWisp/cscArchWisp.asset", difficultyBase = 0.9f, rewardBase = 23f };
-        private static SpawnCardData ADHermitCrab = new SpawnCardData() { name = "Hermit Crab", location = "RoR2/Base/HermitCrab/cscHermitCrab.asset", difficultyBase = 0.4f, rewardBase = 8f };
+        private static SpawnCardData ADArchWisp = new SpawnCardData() { name = "Archaic Wisp", location = "RoR2/Junk/ArchWisp/cscArchWisp.asset", difficultyBase = 0.8f, rewardBase = 23f };
+        private static SpawnCardData ADHermitCrab = new SpawnCardData() { name = "Hermit Crab", location = "RoR2/Base/HermitCrab/cscHermitCrab.asset", difficultyBase = 0.5f, rewardBase = 8f };
 
         //Boss Tier Enemies
         private static SpawnCardData ADTitan = new SpawnCardData() { name = "Stone Titan", location = "RoR2/Base/Titan/cscTitanBlackBeach.asset", difficultyBase = 1.2f, rewardBase = 24f };
