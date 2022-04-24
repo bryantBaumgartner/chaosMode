@@ -28,6 +28,7 @@ namespace ChaosMode
         public static ConfigEntry<bool> giveItems { get; set; }
         public static ConfigEntry<bool> randomShrines { get; set; }
         public static ConfigEntry<bool> randomSpecialChests { get; set; }
+        public static ConfigEntry<bool> includeLunar { get; set; }
         public static ConfigEntry<int> commonRate { get; set; }
         public static ConfigEntry<int> uncommonRate { get; set; }
         public static ConfigEntry<int> legendRate { get; set; }
@@ -117,6 +118,12 @@ namespace ChaosMode
             );
 
             //Items
+            includeLunar = Config.Bind<bool>(
+                "Item Settings",
+                "IncludeLunar",
+                false,
+                "Include or exclude Lunar items with randomly dispersed items.\nLunar items can still be found in chests."
+            );
             commonRate = Config.Bind<int>(
                 "Item Settings",
                 "CommonRate",
@@ -288,8 +295,10 @@ namespace ChaosMode
         {
             //Set initial run variables
             oldTimer = 0;
+            directorValue = 0;
             spawning = false;
             initialized = false;
+
             instance.StartCoroutine(instance.GameLoop());
 
             orig.Invoke(self);
@@ -371,12 +380,12 @@ namespace ChaosMode
         //Randomize chest drops using our drop table method
         private static void ChestBehavior_ItemDrop(On.RoR2.ChestBehavior.orig_ItemDrop orig, ChestBehavior self)
         {
-            if (!CheckChestTypeIsValid(self)) return;
+            if (!CheckChestTypeIsValid(self)) { orig.Invoke(self); return; }
 
             PropertyInfo dropPickupField = typeof(ChestBehavior).GetProperty("dropPickup", BindingFlags.Instance | BindingFlags.Public);
             if ((PickupIndex)dropPickupField.GetValue(self) == PickupIndex.none) { return; }
 
-            List<PickupIndex> newRoll = RollType(GetDropTable());
+            List<PickupIndex> newRoll = RollType(ItemDropTable());
             PickupIndex item = newRoll[random.Next(0, newRoll.Count)];
             dropPickupField.SetValue(self, item);
 
@@ -426,8 +435,9 @@ namespace ChaosMode
         {
             if (randomSpecialChests.Value) return true;
 
-            String chestType = self.gameObject.name.Replace("Clone", "").Trim();
-            return (chestType != "EquipmentBarrel") && (chestType != "LunarPod") && (chestType != "VoidChest") && (chestType != "GoldChest");
+            String chestType = self.gameObject.name.Replace("(Clone)", "").Trim();
+            System.Console.WriteLine("[CHAOS] ChestBehavior gameobject name: {0}", chestType);
+            return (chestType != "EquipmentBarrel") && (chestType != "LunarChest") && (chestType != "VoidChest") && (chestType != "GoldChest");
         } 
 
         //The Random Chaos
@@ -466,8 +476,9 @@ namespace ChaosMode
             List<PickupIndex> newRoll = null;
             int type = 0, number = 1;
 
-            //Increment the pseudo-director value for buying enemies
-            directorValue = 0.3f + Run.instance.GetDifficultyScaledCost(1) / 10f;
+            //Increment the pseudo-director value for spawning higher level enemies (this is so scuffed)
+            directorValue += Run.instance.GetDifficultyScaledCost(random.Next(1, 3)) / (Mathf.Clamp(10f - ((ambushRate.Value / 100f) * 8f), 2f, 10f));
+            System.Console.WriteLine("[CHAOS] Director Aggro Value: {0}", directorValue);
 
             switch (SummonDropTable()) //New generic drop table system (shouldn't change much)
             {
@@ -476,16 +487,9 @@ namespace ChaosMode
                     enemy = swarmEnemies[random.Next(0, swarmEnemies.Count)];
                     number = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(random.Next(5, 10)) * Mathf.Clamp(swarmAggression.Value, 1, spawnLimit.Value ? 3 : 1024),
                         5, spawnLimit.Value ? maxEnemies.Value : 65536);
-                    SummonEnemy(enemy, number);
 
-                    if (giveItems.Value)
-                    {
-                        type = GetDropTable(restrictEquipment: true);
-                        newRoll = RollType(ItemDropTable()); //New generic drop table system (shouldn't change much)
-                        GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
-                        //if (type != Equipment) GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
-                        //else EquipAllPlayers(random.Next(0, newRoll.Count));
-                    }
+                    SummonEnemy(enemy, number);
+                    ItemEveryMinute();
                     break;
 
                 case 1:
@@ -494,16 +498,9 @@ namespace ChaosMode
                     //enemy = (random.Next(0, 100 - difficultyBase) < ambushRate.Value) ? heavyEnemies[random.Next(0, heavyEnemies.Count)] : normalEnemies[random.Next(0, normalEnemies.Count)];
                     enemy = normalEnemies[random.Next(0, normalEnemies.Count)];
                     number = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(random.Next(1, 3)), 1, spawnLimit.Value ? maxEnemies.Value : 65536);
+
                     SummonEnemy(enemy, number);
-                    
-                    if (giveItems.Value)
-                    {
-                        type = GetDropTable(restrictEquipment: true);
-                        newRoll = RollType(GetDropTable()); //New generic drop table system (shouldn't change much)
-                        GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
-                        //if (type != Equipment) GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
-                        //else EquipAllPlayers(random.Next(0, newRoll.Count));
-                    }
+                    ItemEveryMinute();
                     break;
 
                 case 2:
@@ -533,6 +530,17 @@ namespace ChaosMode
                     }
                     break;
             }
+        }
+        private static void ItemEveryMinute()
+        {
+            if (!giveItems.Value) return;
+
+            int type = GetDropTable(restrictEquipment: true, restrictLunar: includeLunar.Value);
+            List<PickupIndex> newRoll = RollType(type);
+            GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
+
+            //if (type != Equipment) GiveToAllPlayers(newRoll[random.Next(0, newRoll.Count)]);
+            //else EquipAllPlayers(random.Next(0, newRoll.Count));
         }
 
         //Give items to all network players
@@ -968,7 +976,7 @@ namespace ChaosMode
             }
             return rollType;
         }
-        private static int GetDropTable(bool restrictVoid = false, bool restrictEquipment = false)
+        private static int GetDropTable(bool restrictVoid = false, bool restrictEquipment = false, bool restrictLunar = false)
         {
             //Whoops, actually          W > G > R > B > L > E > C
             int[] weights = new int[] {
@@ -976,8 +984,8 @@ namespace ChaosMode
                 uncommonRate.Value,
                 legendRate.Value,
                 bossRate.Value,
-                lunarRate.Value,
-                restrictEquipment ? 15 : 0,
+                restrictLunar ? 0 : lunarRate.Value,
+                restrictEquipment ? 0 : 15,
                 expansion1 ? restrictVoid ? 0 : corruptRate.Value : 0
             };
             //int[] weights = new int[] { 20, 15, 10, 10, 10, restrictEquipment ? 0 : 15, expansion1 ? restrictVoid ? 0 : corruptRate.Value : 0 };
@@ -1015,7 +1023,7 @@ namespace ChaosMode
         }
 
         //Generic drop table system
-        private static int ItemDropTable(bool restrictVoid = false, bool restrictEquipment = false)
+        private static int ItemDropTable(bool restrictVoid = false, bool restrictEquipment = false, bool restrictLunar = false)
         {
             //Whoops, actually          W > G > R > B > L > E > C
             int[] weights = new int[] {
@@ -1023,8 +1031,8 @@ namespace ChaosMode
                 uncommonRate.Value,
                 legendRate.Value,
                 bossRate.Value,
-                lunarRate.Value,
-                restrictEquipment ? 15 : 0,
+                restrictLunar ? 0 : lunarRate.Value,
+                restrictEquipment ? 0 : 15,
                 expansion1 ? restrictVoid ? 0 : corruptRate.Value : 0
             };
             return CreateDropTable(weights);
@@ -1038,16 +1046,20 @@ namespace ChaosMode
         private static int SummonDropTable()
         {
             //In order,                 Swarm > Normal > Event > Boss
-            int[] weights = new int[] { swarmRate.Value, Mathf.Clamp(100 - ambushRate.Value - swarmRate.Value, 0, 100), eventRate.Value, Mathf.Clamp(ambushRate.Value + Run.instance.GetDifficultyScaledCost(1), 0, 100) };
+            int[] weights = new int[] {
+                Mathf.Clamp(swarmRate.Value - (int)directorValue / 3, 0, 100),
+                Mathf.Clamp(50 - (int)directorValue / 3, 0, 100),
+                Mathf.Clamp(eventRate.Value, 0, 100),
+                Mathf.Clamp(5 + (int)directorValue, 0, 100) };
             return CreateDropTable(weights);
         }
         private static int EventDropTable()
         {
             //In order,                 J > E > M > F > P > O > C > V
-            List<int> weights = new List<int>() { 30, 30, 10, 30 }; // Basic weights
-            if (purgeRate.Value > 0) weights.Add(10);
+            List<int> weights = new List<int>() { 30, 20, 5, 25 }; // Basic weights
+            if (purgeRate.Value > 0) weights.Add(5);
             if (enableOrder.Value) weights.Add(5);
-            if (expansion1) weights.AddRange(new List<int>() { 15, 15 });
+            if (expansion1) weights.AddRange(new List<int>() { 5, 15 });
 
             return CreateDropTable(weights.ToArray());
         }
@@ -1162,6 +1174,16 @@ namespace ChaosMode
         public string location { get; set; }
         public float difficultyBase { get; set; }
         public float rewardBase { get; set; }
+        public int spawnCost { get; set; }
+
+        public SpawnCardData()
+        {
+            name = "Test Enemy";
+            location = "RoR2/Base/Beetle/cscBeetle.asset";
+            difficultyBase = 0.1f;
+            rewardBase = 5f;
+            spawnCost = 1;
+        }
     }
     class EliteEquipment
     {
