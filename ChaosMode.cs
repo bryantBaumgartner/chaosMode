@@ -16,7 +16,7 @@ using UnityEngine.SceneManagement;
 namespace ChaosMode
 {
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Pocket.ChaosMode", "ChaosMode", "2.4.0")]
+    [BepInPlugin("com.Pocket.ChaosMode", "ChaosMode", "2.4.1")]
     [NetworkCompatibility(CompatibilityLevel.NoNeedForSync, VersionStrictness.EveryoneNeedSameModVersion)]
     internal class ChaosMode : BaseUnityPlugin
     {
@@ -365,6 +365,8 @@ namespace ChaosMode
                 newRoll = RollType(2);
                 item = newRoll[random.Next(0, newRoll.Count)];
                 GiveToAllPlayers(item);
+
+                System.Console.WriteLine("[CHAOS] Test successful", expansion1);
             }
 
             //Broadcast confirmation messsage
@@ -549,15 +551,23 @@ namespace ChaosMode
             //Loop through players and give them each the same pickupindex
             foreach (PlayerCharacterMasterController playerCharacterMasterController in PlayerCharacterMasterController.instances)
             {
-                string nameOut = playerCharacterMasterController.GetDisplayName();
-                CharacterMaster master = playerCharacterMasterController.master;
-                master.inventory.GiveItem(PickupCatalog.GetPickupDef(pickupIndex).itemIndex, count);
-                MethodInfo method = typeof(GenericPickupController).GetMethod("SendPickupMessage", BindingFlags.Static | BindingFlags.NonPublic);
-                method.Invoke(null, new object[]
+                try
                 {
+                    string nameOut = playerCharacterMasterController.GetDisplayName();
+                    System.Console.WriteLine(nameOut);
+                    CharacterMaster master = playerCharacterMasterController.master;
+                    master.inventory.GiveItem(PickupCatalog.GetPickupDef(pickupIndex).itemIndex, count);
+                    MethodInfo method = typeof(GenericPickupController).GetMethod("SendPickupMessage", BindingFlags.Static | BindingFlags.NonPublic);
+                    method.Invoke(null, new object[]
+                    {
                     master,
                     pickupIndex
-                });
+                    });
+                }
+                catch (Exception e)
+                {
+                    System.Console.WriteLine(e.Message);
+                }
             }
         }
         private static void GiveToOnePlayer(PlayerCharacterMasterController playerCharacterMasterController, PickupIndex pickupIndex, int count = 1)
