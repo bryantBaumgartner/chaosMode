@@ -42,6 +42,9 @@ PurgeRate | 0 - 10 | 5 | Limits how many items a Purge Event can take from playe
 If you have questions or problems, you can leave them in the [issues](https://github.com/bryantBaumgartner/chaosMode/issues) or reach out to me on Discord at `Pocket#4156` either through DMs or the [RoR2 Modding Discord](https://discord.gg/JDbYRZCGbs). I'm pretty good about responding to messages.
 
 # Changelog
+2.4.1
++ Fixed a bug preventing starting items from being distributed correctly.
+
 2.4.0
 + Balanced difficulty to make the early-game more fair.
 + Added a setting to toggle randomized drops for special chest types.
