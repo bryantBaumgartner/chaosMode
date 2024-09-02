@@ -78,7 +78,9 @@ namespace ChaosMode
         {
             //Is DLC1 enabled?
             expansion1 = Run.instance.IsExpansionEnabled(ExpansionCatalog.expansionDefs[0]);
+            expansion1 = Run.instance.IsExpansionEnabled(ExpansionCatalog.expansionDefs[1]);
             System.Console.WriteLine("[CHAOS] Expansion1 loaded: {0}", expansion1);
+            System.Console.WriteLine("[CHAOS] Expansion2 loaded: {0}", expansion2);
 
             //Use the current seed of the game for consistency
             random = new System.Random((int)Run.instance.seed);
@@ -97,6 +99,7 @@ namespace ChaosMode
         }
 
         //Needed so we ChaosMode.Events.cs doesn't need to inherit from BaseUnityPlugin and can instead be instanced
+        new public static T FindObjectOfType<T>() => FindObjectOfType<T>();
         new public static T[] FindObjectsOfType<T>() => FindObjectsOfType<T>();
     }
 }

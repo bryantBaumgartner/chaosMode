@@ -68,6 +68,17 @@ namespace ChaosMode
                 swarmEnemies.AddRange(ex1SwarmEnemies);
             }
 
+            //Add the second expansion's enemies to the normal pool of enemies
+            if (expansion2)
+            {
+                List<SpawnCardData> ex2NormalEnemies = new List<SpawnCardData> { ADScorchling };
+                List<SpawnCardData> ex2HeavyEnemies = new List<SpawnCardData> { ADFalseSon };
+                List<SpawnCardData> ex2SwarmEnemies = new List<SpawnCardData> { ADChild };
+                normalEnemies.AddRange(ex2NormalEnemies);
+                heavyEnemies.AddRange(ex2HeavyEnemies);
+                swarmEnemies.AddRange(ex2SwarmEnemies);
+            }
+
             SpawnCardData enemy = null;
             List<PickupIndex> newRoll = null;
             int type = 0, number = 1;
@@ -101,7 +112,9 @@ namespace ChaosMode
 
                 case 2:
                     //Event
-                    List<IEnumerator> events = new List<IEnumerator>() { eventing.JellyfishEvent(), eventing.EliteParentEvent(), eventing.FinalEncounter(), eventing.GainFriend() };
+                    List<IEnumerator> events = new List<IEnumerator>() { eventing.JellyfishEvent(), eventing.EliteParentEvent(),
+                        eventing.FinalEncounter(), eventing.GainFriend(), eventing.TeleporterEvent(), eventing.ForceTeleportEvent(),
+                        eventing.GoldEvent() };
                     if (purgeRate.Value > 0) events.Add(eventing.PurgeAllItems());
                     if (enableOrder.Value) events.Add(eventing.SequenceEvent());
                     if (expansion1) events.AddRange(new List<IEnumerator>() { eventing.Corruption(), eventing.VoidEncounter() });

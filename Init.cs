@@ -26,7 +26,7 @@ namespace ChaosMode
         }
 
         public static ArtifactDef ChaosArtifact;
-        public static bool multiplayerMode = true, expansion1;
+        public static bool multiplayerMode = true, expansion1, expansion2;
 
         public static void InitArtifact()
         {

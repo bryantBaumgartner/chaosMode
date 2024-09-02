@@ -1,0 +1,11 @@
+C:\Users\banis\source\repos\DataLibraries\ChaosMode\obj\Debug\netstandard2.1\chaos.csproj.AssemblyReference.cache
+C:\Users\banis\source\repos\DataLibraries\ChaosMode\obj\Debug\netstandard2.1\chaos.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\banis\source\repos\DataLibraries\ChaosMode\obj\Debug\netstandard2.1\chaos.AssemblyInfoInputs.cache
+C:\Users\banis\source\repos\DataLibraries\ChaosMode\obj\Debug\netstandard2.1\chaos.AssemblyInfo.cs
+C:\Users\banis\source\repos\DataLibraries\ChaosMode\obj\Debug\netstandard2.1\chaos.csproj.CoreCompileInputs.cache
+C:\Users\banis\source\repos\DataLibraries\ChaosMode\obj\Debug\netstandard2.1\chaos.sourcelink.json
+C:\Users\banis\source\repos\DataLibraries\ChaosMode\bin\Debug\netstandard2.1\chaos.deps.json
+C:\Users\banis\source\repos\DataLibraries\ChaosMode\bin\Debug\netstandard2.1\chaos.dll
+C:\Users\banis\source\repos\DataLibraries\ChaosMode\bin\Debug\netstandard2.1\chaos.pdb
+C:\Users\banis\source\repos\DataLibraries\ChaosMode\obj\Debug\netstandard2.1\chaos.dll
+C:\Users\banis\source\repos\DataLibraries\ChaosMode\obj\Debug\netstandard2.1\chaos.pdb

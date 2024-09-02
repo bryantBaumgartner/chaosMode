@@ -250,6 +250,61 @@ namespace ChaosMode
             yield return null;
         }
 
+        public IEnumerator ForceTeleportEvent()
+        {
+            if (!Run.instance.isServer) { yield return null; }
+
+            SceneDef newScene = (SceneDef)Addressables.LoadAssetAsync<SceneDef>(scenes[random.Next(0, scenes.Length)]).WaitForCompletion();
+
+            SceneExitController sceneExitController = FindObjectOfType<SceneExitController>();
+            if (sceneExitController == null) { sceneExitController = new SceneExitController(); }
+            sceneExitController.useRunNextStageScene = false;
+            sceneExitController.destinationScene = newScene;
+            sceneExitController.SetState(SceneExitController.ExitState.TeleportOut);
+
+
+            //This is an inside joke btw
+            Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+            {
+                baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Teleportation event! Disappear!</color>"
+            });
+
+            yield return null;
+        }
+
+        public IEnumerator GoldEvent()
+        {
+            foreach (PlayerCharacterMasterController player in PlayerCharacterMasterController.instances)
+            {
+                CharacterMaster master = player.master;
+
+                master.money = (uint)random.Next(0, 100000);
+
+                //This is an inside joke btw
+                Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+                {
+                    baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Halcyon event! Random Number Gold-erator!</color>"
+                });
+            }
+
+            yield return null;
+        }
+
+        public IEnumerator TeleporterEvent()
+        {
+            if (!Run.instance.isServer) { yield return null; }
+
+            FindObjectOfType<TeleporterInteraction>().isActivated = true;
+
+            //This is an inside joke btw
+            Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+            {
+                baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Haste event! Start the Teleporter!</color>"
+            });
+
+            yield return null;
+        }
+
         public IEnumerator CheckIfEnemyDied(GameObject enemy, int reward = 20)
         {
             //I think I fixed this problem a long time ago but either way this is a scuffed way to get money from enemies

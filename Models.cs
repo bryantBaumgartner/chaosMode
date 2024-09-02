@@ -15,6 +15,8 @@
         public static EliteEquipment ADSpeed = new EliteEquipment() { prefix = "Speedy?", addressable = "RoR2/DLC1/EliteSecretSpeedEquipment.asset" };
         public static EliteEquipment ADGold = new EliteEquipment() { prefix = "Golden?", addressable = "RoR2/Junk/EliteGold/EliteGoldEquipment.asset" };
         public static EliteEquipment ADYellow = new EliteEquipment() { prefix = "Yellow?", addressable = "RoR2/Junk/EliteYellow/EliteYellowEquipment.asset" };
+        //Gilded    (Aurelionite)
+        //Twisted   (Bead)
 
         //Weaker Enemies
         //I will never let the "Archaic Wisp" die. He will always be one of my favorite enemy types.
@@ -69,10 +71,33 @@
         public static SpawnCardData ADMinor = new SpawnCardData() { name = "Alpha Construct", location = "RoR2/DLC1/MajorAndMinorConstruct/cscMinorConstruct.asset", difficultyBase = 0.5f, rewardBase = 11f };
         public static SpawnCardData ADMega = new SpawnCardData() { name = "Xi Construct", location = "RoR2/DLC1/MajorAndMinorConstruct/cscMegaConstruct.asset", difficultyBase = 1.0f, rewardBase = 20f };
 
+        //DLC - Survivors of the Storm
+        public static SpawnCardData ADHalcyonite = new SpawnCardData() { name = "Halcyonite", location = "RoR2/DLC2/Halcyonite/cscHalcyonite.asset", difficultyBase = 2.0f, rewardBase = 34f };
+        public static SpawnCardData ADScorchling = new SpawnCardData() { name = "Scorch Wurm", location = "RoR2/DLC2/Scorchling/cscScorchling.asset", difficultyBase = 1.2f, rewardBase = 28f };
+        public static SpawnCardData ADChild = new SpawnCardData() { name = "Child", location = "RoR2/DLC2/Child/cscChild.asset", difficultyBase = 0.6f, rewardBase = 12f };
+
         //Primary Bosses
         public static SpawnCardData ADBrother = new SpawnCardData() { name = "Mithrix", location = "RoR2/Base/Brother/cscBrother.asset", difficultyBase = 2.0f, rewardBase = 40f };
         public static SpawnCardData ADVoidling = new SpawnCardData() { name = "Voidling", location = "RoR2/DLC1/VoidRaidCrab/cscMiniVoidRaidCrabBase.asset", difficultyBase = 2.0f, rewardBase = 45f };
+        public static SpawnCardData ADFalseSon = new SpawnCardData() { name = "False Son", location = "RoR2/DLC2/FalseSonBoss/cscFalseSonBoss.asset", difficultyBase = 3.0f, rewardBase = 60f };
 
+        public static string[] scenes = {
+        "RoR2/Base/blackbeach/blackbeach.asset",
+        "RoR2/Base/blackbeach2/blackbeach2.asset",
+        "RoR2/Base/dampcavesimple/dampcavesimple.asset",
+        "RoR2/Base/foggyswamp/foggyswamp.asset",
+        "RoR2/Base/frozenwall/frozenwall.asset",
+        "RoR2/Base/golemplains/golemplains.asset",
+        "RoR2/Base/golemplains2/golemplains2.asset",
+        "RoR2/Base/goolake/goolake.asset",
+        "RoR2/Base/rootjungle/rootjungle.asset",
+        "RoR2/Base/shipgraveyard/shipgraveyard.asset",
+        "RoR2/Base/skymeadow/skymeadow.asset",
+        "RoR2/Base/wispgraveyard/wispgraveyard.asset",
+        "RoR2/DLC1/ancientloft/ancientloft.asset",
+        "RoR2/DLC1/snowyforest/snowyforest.asset",
+        "RoR2/DLC1/sulfurpools/sulfurpools.asset",
+        };
     }
 
     class SpawnCardData
