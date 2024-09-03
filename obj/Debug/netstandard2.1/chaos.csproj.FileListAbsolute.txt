@@ -9,3 +9,5 @@ C:\Users\banis\source\repos\DataLibraries\ChaosMode\bin\Debug\netstandard2.1\cha
 C:\Users\banis\source\repos\DataLibraries\ChaosMode\bin\Debug\netstandard2.1\chaos.pdb
 C:\Users\banis\source\repos\DataLibraries\ChaosMode\obj\Debug\netstandard2.1\chaos.dll
 C:\Users\banis\source\repos\DataLibraries\ChaosMode\obj\Debug\netstandard2.1\chaos.pdb
+C:\Users\banis\source\repos\DataLibraries\ChaosMode\obj\Debug\netstandard2.1\chaos.Properties.Resources.resources
+C:\Users\banis\source\repos\DataLibraries\ChaosMode\obj\Debug\netstandard2.1\chaos.csproj.GenerateResource.cache

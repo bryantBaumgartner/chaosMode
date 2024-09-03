@@ -44,8 +44,8 @@ namespace ChaosMode
                 baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Elite Parent event! The council will see you now!</color>"
             });
 
-            PlayerCharacterMasterController[] players = ChaosMode.FindObjectsOfType<PlayerCharacterMasterController>();
-            PlayerCharacterMasterController chosen = players[random.Next(0, players.Length)];
+            var players = PlayerCharacterMasterController.instances;
+            PlayerCharacterMasterController chosen = players[random.Next(0, players.Count)];
 
             //Addressable Resource loading
             CharacterSpawnCard spawnCard = null;
@@ -97,11 +97,11 @@ namespace ChaosMode
                 });
             }
 
-            foreach (PlayerCharacterMasterController player in PlayerCharacterMasterController.instances)
-                instance.StartCoroutine(Purge(player));
+            //foreach (PlayerCharacterMasterController player in PlayerCharacterMasterController.instances)
+            //    instance.StartCoroutine(Purge(player));
 
-            PlayerCharacterMasterController[] players = FindObjectsOfType<PlayerCharacterMasterController>();
-            PlayerCharacterMasterController chosen = players[random.Next(0, players.Length)];
+            var players = PlayerCharacterMasterController.instances;
+            PlayerCharacterMasterController chosen = players[random.Next(0, players.Count)];
 
             //Addressable Resource loading
             CharacterSpawnCard spawnCard = null;
@@ -119,8 +119,8 @@ namespace ChaosMode
                 baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>[VO?ID E??VEN?T][E?SCA?PE!]</color>"
             });
 
-            PlayerCharacterMasterController[] players = FindObjectsOfType<PlayerCharacterMasterController>();
-            PlayerCharacterMasterController chosen = players[random.Next(0, players.Length)];
+            var players = PlayerCharacterMasterController.instances;
+            PlayerCharacterMasterController chosen = players[random.Next(0, players.Count)];
 
             //Addressable Resource loading
             CharacterSpawnCard spawnCard = null;
@@ -178,6 +178,7 @@ namespace ChaosMode
             //Addressable Resource loading
             List<SpawnCardData> allies = new List<SpawnCardData>() { ADBeetleGuard, ADBrother, ADNullifier, ADTitanGold, ADLunarGolem, ADVagrant };
             if (expansion1) allies.Add(ADGup);
+            if (expansion2) allies.AddRange(new List<SpawnCardData>() { ADChild, ADHalcyonite, ADScorchling });
             SpawnCardData ally = allies[random.Next(0, allies.Count)];
             CharacterSpawnCard spawnCard = null;
             spawnCard = Addressables.LoadAssetAsync<CharacterSpawnCard>(ally.location).WaitForCompletion();
@@ -187,8 +188,8 @@ namespace ChaosMode
                 baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Friendly event! " + ally.name + " wants to help you this stage!</color>"
             });
 
-            PlayerCharacterMasterController[] players = FindObjectsOfType<PlayerCharacterMasterController>();
-            PlayerCharacterMasterController chosen = players[random.Next(0, players.Length)];
+            var players = PlayerCharacterMasterController.instances;
+            PlayerCharacterMasterController chosen = players[random.Next(0, players.Count)];
             GameObject spawnedInstance = SpawnEnemy(spawnCard, chosen.master.GetBody().transform.position, ally: true).spawnedInstance;
 
             yield return null;
@@ -299,7 +300,24 @@ namespace ChaosMode
             //This is an inside joke btw
             Chat.SendBroadcastChat(new Chat.SimpleChatMessage
             {
-                baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Haste event! Start the Teleporter!</color>"
+                baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Haste event! Start the teleporter!</color>"
+            });
+
+            yield return null;
+        }
+
+        public IEnumerator PortalEvent()
+        {
+            if (!Run.instance.isServer) { yield return null; }
+
+            FindObjectOfType<TeleporterInteraction>().shouldAttemptToSpawnGoldshoresPortal = random.Next(0,2) == 0;
+            FindObjectOfType<TeleporterInteraction>().shouldAttemptToSpawnMSPortal = random.Next(0, 2) == 0;
+            FindObjectOfType<TeleporterInteraction>().shouldAttemptToSpawnShopPortal = random.Next(0, 2) == 0;
+
+            //This is an inside joke btw
+            Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+            {
+                baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Orb event! The teleporter has changed!</color>"
             });
 
             yield return null;

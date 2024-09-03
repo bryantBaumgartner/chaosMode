@@ -2,6 +2,9 @@
 using BepInEx.Configuration;
 using R2API;
 using RoR2;
+using System;
+using System.IO;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -30,10 +33,14 @@ namespace ChaosMode
 
         public static void InitArtifact()
         {
+            ///ISSUE WITH ARTIFACT INITIALIZATION AT THE MOMENT
+            ///ORIGINAL ERROR WAS WITH AssetBundle.LoadFromStream
+            ///CAN'T FIND ASSET LOCATIONS?
+
             //Create the new Artifact
             ChaosArtifact = ScriptableObject.CreateInstance<ArtifactDef>();
-            ChaosArtifact.cachedName = "ChaosModeArtifact";
-            ChaosArtifact.nameToken = "Artifact of ChaosMode";
+            ChaosArtifact.cachedName = "ARTIFACT_ChaosMode";
+            ChaosArtifact.nameToken = "Artifact of Chaos Mode";
             ChaosArtifact.descriptionToken = "Randomizes chest drops, spawns bosses on a timer, manipulates items and causes ABSOLUTE CHAOS!";
 
             //AssetBundle Icons
@@ -204,13 +211,13 @@ namespace ChaosMode
             swarmRate = Config.Bind<int>(
                 "Spawn Settings",
                 "SwarmRate",
-                35,
+                15,
                 "Boosts the lilelyhood of enemies being spawned in swarms.\nRoughly SwarmRate% of spawns."
             );
             eventRate = Config.Bind<int>(
                 "Spawn Settings",
                 "EventRate",
-                15,
+                20,
                 "Boosts how often events are triggered.\nRoughly EventRate% of spawns."
             );
             ambushRate = Config.Bind<int>(

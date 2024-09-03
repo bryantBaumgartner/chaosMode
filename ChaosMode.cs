@@ -23,7 +23,7 @@ namespace ChaosMode
 
         private static int oldTimer;
         public static float directorValue;
-        private static bool initialized, spawning, expansion1;
+        private static bool initialized, spawning, expansion1, expansion2;
 
         public void Awake()
         {
@@ -78,7 +78,7 @@ namespace ChaosMode
         {
             //Is DLC1 enabled?
             expansion1 = Run.instance.IsExpansionEnabled(ExpansionCatalog.expansionDefs[0]);
-            expansion1 = Run.instance.IsExpansionEnabled(ExpansionCatalog.expansionDefs[1]);
+            expansion2 = Run.instance.IsExpansionEnabled(ExpansionCatalog.expansionDefs[1]);
             System.Console.WriteLine("[CHAOS] Expansion1 loaded: {0}", expansion1);
             System.Console.WriteLine("[CHAOS] Expansion2 loaded: {0}", expansion2);
 

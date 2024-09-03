@@ -3,3 +3,6 @@
 ################################################################################
 
 /.vs
+/bin/Debug/netstandard2.1/chaos.pdb
+/Properties
+/assetbundles
