@@ -91,6 +91,7 @@ namespace ChaosMode
             {
                 case 0:
                     //Swarm Spawn
+                    System.Console.WriteLine("[CHAOS] spawn swarm");
                     enemy = swarmEnemies[random.Next(0, swarmEnemies.Count)];
                     number = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(random.Next(2, 4)) * Mathf.Clamp(swarmAggression.Value, 1, spawnLimit.Value ? 3 : 1024),
                         5, spawnLimit.Value ? maxEnemies.Value : 65536);
@@ -101,6 +102,7 @@ namespace ChaosMode
 
                 case 1:
                     //Spawn Single Enemy
+                    System.Console.WriteLine("[CHAOS] spawn single enemy");
                     //int difficultyBase = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(1) - 1, 0, ambushRate.Value); //This should scale the rate of higher tier enemies over time
                     //enemy = (random.Next(0, 100 - difficultyBase) < ambushRate.Value) ? heavyEnemies[random.Next(0, heavyEnemies.Count)] : normalEnemies[random.Next(0, normalEnemies.Count)];
                     enemy = normalEnemies[random.Next(0, normalEnemies.Count)];
@@ -112,9 +114,10 @@ namespace ChaosMode
 
                 case 2:
                     //Event
+                    System.Console.WriteLine("[CHAOS] spawn event");
                     List<IEnumerator> events = new List<IEnumerator>() { eventing.JellyfishEvent(), eventing.EliteParentEvent(),
-                        eventing.FinalEncounter(), eventing.GainFriend(), eventing.TeleporterEvent(), eventing.ForceTeleportEvent(),
-                        eventing.GoldEvent(), eventing.PortalEvent() };
+                        eventing.FinalEncounter(), eventing.GainFriend(), eventing.ForceTeleportEvent(),
+                        eventing.GoldEvent() };
                     if (purgeRate.Value > 0) events.Add(eventing.PurgeAllItems());
                     if (enableOrder.Value) events.Add(eventing.SequenceEvent());
                     if (expansion1) events.AddRange(new List<IEnumerator>() { eventing.Corruption(), eventing.VoidEncounter() });
@@ -124,6 +127,7 @@ namespace ChaosMode
 
                 case 3:
                     //Spawn Boss Enemy
+                    System.Console.WriteLine("[CHAOS] spawn boss");
                     //int difficultyBase = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(1) - 1, 0, ambushRate.Value); //This should scale the rate of higher tier enemies over time
                     enemy = heavyEnemies[random.Next(0, heavyEnemies.Count)];
                     number = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(1), 1, spawnLimit.Value ? maxEnemies.Value : 65536);
@@ -221,19 +225,24 @@ namespace ChaosMode
         {
             int loop = 0;
             string elementName = "";
-            float difficulty = 0, threshold = 1;
+            float difficulty = 0, threshold = 1, roll = 0;
 
             //Elite types
             List<EliteEquipment> eliteTypes = new List<EliteEquipment>() { ADFire, ADIce, ADLightning, ADGhost, ADPoison, ADEcho };
             if (expansion1) eliteTypes.AddRange(new List<EliteEquipment>() { ADEarth, ADVoid });
 
             //Threshold gets lower, until it's at 0.5f
-            threshold = 2.4f - (((float)eliteRate.Value / Mathf.Clamp(100f - Run.instance.GetDifficultyScaledCost(1), 0, 50)) * 1.9f);
-            difficulty = Mathf.Clamp(2 - Mathf.Clamp((Run.instance.GetDifficultyScaledCost(reps) * enemyType.difficultyBase * (random.Next(7, 13) / 10f)) / Run.instance.GetDifficultyScaledCost(reps), 0.5f, 2), 0.5f, 2);
-            System.Console.WriteLine("[Chaos Log] Difficulty is {0} >= Elite Threshold is {1}", difficulty, threshold);
+            
+            threshold = Mathf.Clamp((float)eliteRate.Value / 100f, 0f, 1f);
+            difficulty = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(1) / 100f, 0f, 1f - threshold);
+            roll = random.Next(0, 100) / 100f;
+            //threshold = 0.5f + (((float)eliteRate.Value / Mathf.Clamp(100f - Run.instance.GetDifficultyScaledCost(1), 0, 50)) * 1.9f);
+            //difficulty = Mathf.Clamp(2 - Mathf.Clamp((Run.instance.GetDifficultyScaledCost(reps) * enemyType.difficultyBase * (random.Next(7, 13) / 10f)) / Run.instance.GetDifficultyScaledCost(reps), 0.5f, 2), 0.5f, 2);
+            System.Console.WriteLine("[Chaos Log] Roll is {0} >= Elite Threshold is {1}", roll, threshold + difficulty);
 
             //Get an element and bool based on the difficulty
-            bool getElement = difficulty >= threshold ? random.Next(0, 2) == 0 ? true : false : false;
+            bool getElement = threshold + difficulty >= roll ? true : false;
+            //bool getElement = threshold + difficulty >= roll ? random.Next(0, 2) == 0 ? true : false : false;
             EliteEquipment elite = eliteTypes[EliteDropTable()];
 
             //Failsafe in case the SpawnCard doesn't exist
@@ -381,6 +390,7 @@ namespace ChaosMode
 
             for (int i = 0; i < weights.Length; i++)
             {
+                if (weights[i] == 0) continue;
                 check += weights[i];
                 if (roll < check) return i;
             }
@@ -422,12 +432,14 @@ namespace ChaosMode
         {
             //In order, Jly > ElParent > Mith > Friend > Transport > Teleporter > Gold > Portal
             //Purge > Order > Corrupted > Voidling
-            List<int> weights = new List<int>() { 10, 10, 5, 20, 5, 10, 15, 10 }; // Basic weights
+            List<int> weights = new List<int>() { 10, 10, 5, 20, 5, 15 }; // Basic weights
             if (purgeRate.Value > 0) weights.Add(3);
             if (enableOrder.Value) weights.Add(2);
             if (expansion1) weights.AddRange(new List<int>() { 5, 5 });
 
-            return CreateDropTable(weights.ToArray());
+            int response = CreateDropTable(weights.ToArray());
+            System.Console.WriteLine("[CHAOS] event return is {0}", response);
+            return response;
         }
         public static int EliteDropTable()
         {

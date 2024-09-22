@@ -13,7 +13,7 @@
     <SourceRoot Include="C:\Users\banis\.nuget\packages\" />
   </ItemGroup>
   <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <PkgBepInEx_Core Condition=" '$(PkgBepInEx_Core)' == '' ">C:\Users\banis\.nuget\packages\bepinex.core\5.4.21</PkgBepInEx_Core>
+    <PkgBepInEx_Core Condition=" '$(PkgBepInEx_Core)' == '' ">C:\Users\banis\.nuget\packages\bepinex.core\5.4.19</PkgBepInEx_Core>
     <PkgBepInEx_Analyzers Condition=" '$(PkgBepInEx_Analyzers)' == '' ">C:\Users\banis\.nuget\packages\bepinex.analyzers\1.0.8</PkgBepInEx_Analyzers>
   </PropertyGroup>
 </Project>
