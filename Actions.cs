@@ -241,7 +241,7 @@ namespace ChaosMode
             System.Console.WriteLine("[Chaos Log] Roll is {0} >= Elite Threshold is {1}", roll, threshold + difficulty);
 
             //Get an element and bool based on the difficulty
-            bool getElement = threshold + difficulty >= roll ? true : false;
+            bool getElement = threshold + difficulty < roll ? true : false;
             //bool getElement = threshold + difficulty >= roll ? random.Next(0, 2) == 0 ? true : false : false;
             EliteEquipment elite = eliteTypes[EliteDropTable()];
 
