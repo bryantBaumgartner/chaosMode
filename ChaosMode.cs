@@ -14,7 +14,7 @@ using static ChaosMode.Init;
 namespace ChaosMode
 {
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Pocket.ChaosMode", "ChaosMode", "2.4.1")]
+    [BepInPlugin("com.Pocket.ChaosMode", "ChaosMode", "3.0.0")]
     [NetworkCompatibility(CompatibilityLevel.NoNeedForSync, VersionStrictness.EveryoneNeedSameModVersion)]
     internal class ChaosMode : BaseUnityPlugin
     {
