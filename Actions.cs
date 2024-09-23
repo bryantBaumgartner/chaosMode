@@ -249,28 +249,32 @@ namespace ChaosMode
             try
             {
                 //Check to see if this needs to scale anymore
-                int count = reps;
+                PlayerCharacterMasterController[] players = PlayerCharacterMasterController.instances;
+                int count = reps / players.Count;
+                loop = count = count <= 0 ? 1 : count;
 
+                //RATHER THAN GET A FLAT COUNT AND SPAWN PER PLAYER
+                //DIVIDE THE COUNT BY PLAYERS(ROUND IT) AND THEN
+                //LOOP THROUGH EACH PLAYER AND LOWER THE COUNT BY 1 EACH TIME
+                
                 //Addressable Resource loading
                 CharacterSpawnCard spawnCard = null;
                 spawnCard = Addressables.LoadAssetAsync<CharacterSpawnCard>(enemyType.location).WaitForCompletion();
 
-                for (int i = 0; i < count; i++)
+                foreach (PlayerCharacterMasterController player in PlayerCharacterMasterController.instances)
                 {
-                    foreach (PlayerCharacterMasterController player in PlayerCharacterMasterController.instances)
-                    {
-                        //Legacy spawn system
-                        GameObject spawnedInstance = SpawnEnemy(spawnCard, player.master.GetBody().transform.position).spawnedInstance;
+                    if (count-- <= 0) break;
+                    
+                    //Legacy spawn system
+                    GameObject spawnedInstance = SpawnEnemy(spawnCard, player.master.GetBody().transform.position).spawnedInstance;
 
-                        if (getElement & spawnedInstance)
-                        {
-                            EquipOneElite(spawnedInstance.GetComponent<CharacterMaster>().inventory, elite);
-                            elementName = elite.prefix;
-                            count = Mathf.Clamp(count - 1, 1, 50);
-                        }
-                        instance.StartCoroutine(eventing.CheckIfEnemyDied(spawnedInstance, (int)enemyType.rewardBase));
-                        loop++;
+                    if (getElement & spawnedInstance)
+                    {
+                        EquipOneElite(spawnedInstance.GetComponent<CharacterMaster>().inventory, elite);
+                        elementName = elite.prefix;
+                        count = Mathf.Clamp(count - 1, 1, 50);
                     }
+                    instance.StartCoroutine(eventing.CheckIfEnemyDied(spawnedInstance, (int)enemyType.rewardBase));
                 }
                 Chat.SendBroadcastChat(new Chat.SimpleChatMessage
                 {
