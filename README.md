@@ -8,7 +8,7 @@ As of patch 2.1.0 Chaos Mode works with the `Survivors of The Void Expansion!`
 # Multiplayer
 In order to use the mod in multiplayer you can either
 + Ensure all clients in the lobby have matching versions of the mod.
-+ Set the config setting `ArtifactMode` to `False` on the host client. The mod will automatically run in the background.
++ (Recommended for multiplayer) Set the config setting `ArtifactMode` to `False` on the host client. The mod will automatically run in the background.
 	+ You cannot currently disable the mod with this method without resetting the game.
 
 # Configuration
@@ -60,6 +60,12 @@ CorruptRate | 0 - 100 | 10 | The weighted likelyhood that a void item will be ro
 If you have questions or problems, you can leave them in the [issues](https://github.com/bryantBaumgartner/chaosMode/issues) or reach out to me on Discord at username `pocket_squid`, display name `Pocket`, formerly `Pocket#4156` either through DMs or the [RoR2 Modding Discord](https://discord.gg/JDbYRZCGbs). I'm pretty good about responding to messages.
 
 # Changelog
+3.0.1
++ Fixed a bug causing enemies to be duplicated in multiplayer.
++ Fixed a bug causing both expansions to be ignored.
++ Rebalanced several rate calculations for spawns, events and elites.
++ Added a new event. 
+
 3.0.0
 + Seekers of the Storm Compatibility! 
 + New enemies can spawn.
