@@ -235,7 +235,7 @@ namespace ChaosMode
             
             threshold = Mathf.Clamp((float)eliteRate.Value / 100f, 0f, 1f);
             difficulty = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(1) / 100f, 0f, 1f - threshold);
-            roll = random.Next(0, (int)Mathf.Clamp(threshold + Run.instance.GetDifficultyScaledCost(1), 0, 100)) / 100f;
+            roll = random.Next(0, (int)Mathf.Clamp(threshold * 100 + Run.instance.GetDifficultyScaledCost(1), 0, 100)) / 100f;
             //threshold = 0.5f + (((float)eliteRate.Value / Mathf.Clamp(100f - Run.instance.GetDifficultyScaledCost(1), 0, 50)) * 1.9f);
             //difficulty = Mathf.Clamp(2 - Mathf.Clamp((Run.instance.GetDifficultyScaledCost(reps) * enemyType.difficultyBase * (random.Next(7, 13) / 10f)) / Run.instance.GetDifficultyScaledCost(reps), 0.5f, 2), 0.5f, 2);
             System.Console.WriteLine("[Chaos Log] Roll is {0} >= Elite Threshold is {1}", roll, threshold + difficulty);
