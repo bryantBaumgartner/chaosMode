@@ -121,6 +121,7 @@ namespace ChaosMode
                     if (purgeRate.Value > 0) events.Add(eventing.PurgeAllItems());
                     if (enableOrder.Value) events.Add(eventing.SequenceEvent());
                     if (expansion1) events.AddRange(new List<IEnumerator>() { eventing.Corruption(), eventing.VoidEncounter() });
+                    if (expansion2) events.AddRange(new List<IEnumerator>() { eventing.StormEncounter() });
 
                     instance.StartCoroutine(events[EventDropTable()]); //Uses our new drop table system to weigh events
                     break;
@@ -438,11 +439,14 @@ namespace ChaosMode
         public static int EventDropTable()
         {
             //In order, Jly > ElParent > Mith > Friend > Gold >
-            //Purge > Order > Corrupted > Voidling
-            List<int> weights = new List<int>() { 10, 6, 6, 15, 10 }; // Basic weights
-            if (purgeRate.Value > 0) weights.Add(3);
+            //Purge > Order >
+            //Corrupted > Voidling >
+            //False Son >
+            List<int> weights = new List<int>() { 20, 5, 8, 20, 15 }; // Basic weights
+            if (purgeRate.Value > 0) weights.Add(2);
             if (enableOrder.Value) weights.Add(2);
-            if (expansion1) weights.AddRange(new List<int>() { 8, 4 });
+            if (expansion1) weights.AddRange(new List<int>() { 10, 5 });
+            if (expansion1) weights.AddRange(new List<int>() { 8 });
 
             int response = CreateDropTable(weights.ToArray());
             System.Console.WriteLine("[CHAOS] event return is {0}", response);
@@ -451,8 +455,8 @@ namespace ChaosMode
         public static int EliteDropTable()
         {
             //In order,                 F > I > L > G > Ma > P > Me > V  
-            List<int> weights = new List<int>() { 22, 22, 21, 15, 10, 5 }; // Basic weights
-            if (expansion1) weights.AddRange(new List<int>() { 25, 5 });
+            List<int> weights = new List<int>() { 25, 25, 25, 15, 10, 10 }; // Basic weights
+            if (expansion1) weights.AddRange(new List<int>() { 25, 10 });
             return CreateDropTable(weights.ToArray());
         }
         public static int CreateDropTable(int[] weights)

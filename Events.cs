@@ -130,6 +130,24 @@ namespace ChaosMode
 
             yield return null;
         }
+        public IEnumerator StormEncounter()
+        {
+            Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+            {
+                baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Storm event! Seek and ye shall find!</color>"
+            });
+
+            var players = PlayerCharacterMasterController.instances;
+            PlayerCharacterMasterController chosen = players[random.Next(0, players.Count)];
+
+            //Addressable Resource loading
+            CharacterSpawnCard spawnCard = null;
+            spawnCard = Addressables.LoadAssetAsync<CharacterSpawnCard>(ADFalseSon.location).WaitForCompletion();
+            GameObject spawnedInstance = SpawnEnemy(spawnCard, chosen.master.GetBody().transform.position).spawnedInstance;
+            instance.StartCoroutine(CheckIfEnemyDied(spawnedInstance));
+
+            yield return null;
+        }
         public IEnumerator PurgeAllItems()
         {
             Chat.SendBroadcastChat(new Chat.SimpleChatMessage
