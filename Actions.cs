@@ -116,7 +116,7 @@ namespace ChaosMode
                     //Event
                     System.Console.WriteLine("[CHAOS] spawn event");
                     List<IEnumerator> events = new List<IEnumerator>() { eventing.JellyfishEvent(), eventing.EliteParentEvent(),
-                        eventing.FinalEncounter(), eventing.GainFriend(), eventing.ForceTeleportEvent(),
+                        eventing.FinalEncounter(), eventing.GainFriend(),
                         eventing.GoldEvent() };
                     if (purgeRate.Value > 0) events.Add(eventing.PurgeAllItems());
                     if (enableOrder.Value) events.Add(eventing.SequenceEvent());
@@ -223,6 +223,7 @@ namespace ChaosMode
         //Enemy methods
         public static void SummonEnemy(SpawnCardData enemyType, int reps)
         {
+            reps = Mathf.Clamp(reps, 1, spawnLimit.Value ? maxEnemies.Value : 50);
             string elementName = "";
             float difficulty = 0, threshold = 1, roll = 0;
 
@@ -234,7 +235,7 @@ namespace ChaosMode
             
             threshold = Mathf.Clamp((float)eliteRate.Value / 100f, 0f, 1f);
             difficulty = Mathf.Clamp(Run.instance.GetDifficultyScaledCost(1) / 100f, 0f, 1f - threshold);
-            roll = random.Next(0, 100) / 100f;
+            roll = random.Next(0, (int)Mathf.Clamp(threshold + Run.instance.GetDifficultyScaledCost(1), 0, 100)) / 100f;
             //threshold = 0.5f + (((float)eliteRate.Value / Mathf.Clamp(100f - Run.instance.GetDifficultyScaledCost(1), 0, 50)) * 1.9f);
             //difficulty = Mathf.Clamp(2 - Mathf.Clamp((Run.instance.GetDifficultyScaledCost(reps) * enemyType.difficultyBase * (random.Next(7, 13) / 10f)) / Run.instance.GetDifficultyScaledCost(reps), 0.5f, 2), 0.5f, 2);
             System.Console.WriteLine("[Chaos Log] Roll is {0} >= Elite Threshold is {1}", roll, threshold + difficulty);
@@ -248,7 +249,7 @@ namespace ChaosMode
             try
             {
                 //Check to see if this needs to scale anymore
-                int count = Mathf.Clamp(reps / (getElement ? 2 : 1), 1, maxEnemies.Value);
+                int count = Mathf.Clamp(reps / (getElement ? 2 : 1), 1, reps);
                 var players = PlayerCharacterMasterController.instances;
 
                 //Addressable Resource loading
@@ -256,7 +257,7 @@ namespace ChaosMode
                 spawnCard = Addressables.LoadAssetAsync<CharacterSpawnCard>(enemyType.location).WaitForCompletion();
 
                 int loop = 0;
-                for (int i = 0; i < Mathf.Clamp(count / players.Count, 1, maxEnemies.Value); i++)
+                for (int i = 0; i < Mathf.Clamp(count / players.Count, 1, reps); i++)
                 {
                     foreach (PlayerCharacterMasterController player in players)
                     {
@@ -270,7 +271,7 @@ namespace ChaosMode
                         }
                         instance.StartCoroutine(eventing.CheckIfEnemyDied(spawnedInstance, (int)enemyType.rewardBase));
                     }
-                    loop = i;
+                    loop = i + 1;
                 }
                 Chat.SendBroadcastChat(new Chat.SimpleChatMessage
                 {

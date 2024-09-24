@@ -263,7 +263,6 @@ namespace ChaosMode
             sceneExitController.destinationScene = newScene;
             sceneExitController.SetState(SceneExitController.ExitState.TeleportOut);
 
-
             //This is an inside joke btw
             Chat.SendBroadcastChat(new Chat.SimpleChatMessage
             {
