@@ -223,7 +223,6 @@ namespace ChaosMode
         //Enemy methods
         public static void SummonEnemy(SpawnCardData enemyType, int reps)
         {
-            int loop = 0;
             string elementName = "";
             float difficulty = 0, threshold = 1, roll = 0;
 
@@ -241,7 +240,7 @@ namespace ChaosMode
             System.Console.WriteLine("[Chaos Log] Roll is {0} >= Elite Threshold is {1}", roll, threshold + difficulty);
 
             //Get an element and bool based on the difficulty
-            bool getElement = threshold + difficulty < roll ? true : false;
+            bool getElement = roll >= threshold + difficulty ? true : false;
             //bool getElement = threshold + difficulty >= roll ? random.Next(0, 2) == 0 ? true : false : false;
             EliteEquipment elite = eliteTypes[EliteDropTable()];
 
@@ -249,13 +248,14 @@ namespace ChaosMode
             try
             {
                 //Check to see if this needs to scale anymore
-                int count = reps;
+                int count = Mathf.Clamp(reps / (getElement ? 2 : 1), 1, maxEnemies.Value);
                 var players = PlayerCharacterMasterController.instances;
 
                 //Addressable Resource loading
                 CharacterSpawnCard spawnCard = null;
                 spawnCard = Addressables.LoadAssetAsync<CharacterSpawnCard>(enemyType.location).WaitForCompletion();
 
+                int loop = 0;
                 for (int i = 0; i < Mathf.Clamp(count / players.Count, 1, maxEnemies.Value); i++)
                 {
                     foreach (PlayerCharacterMasterController player in players)
@@ -267,15 +267,15 @@ namespace ChaosMode
                         {
                             EquipOneElite(spawnedInstance.GetComponent<CharacterMaster>().inventory, elite);
                             elementName = elite.prefix;
-                            i++;
                         }
                         instance.StartCoroutine(eventing.CheckIfEnemyDied(spawnedInstance, (int)enemyType.rewardBase));
                     }
-                    Chat.SendBroadcastChat(new Chat.SimpleChatMessage
-                    {
-                        baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Summoning " + loop + (getElement ? " " + elementName + " " : " ") + enemyType.name + (loop > 1 ? "s" : "") + "!</color>"
-                    });
+                    loop = i;
                 }
+                Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+                {
+                    baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Summoning " + loop + (getElement ? " " + elementName + " " : " ") + enemyType.name + (loop > 1 ? "s" : "") + "!</color>"
+                });
             }
             catch
             {
@@ -301,7 +301,14 @@ namespace ChaosMode
                 teamIndexOverride = new TeamIndex?(!ally ? TeamIndex.Monster : TeamIndex.Player),
                 ignoreTeamMemberLimit = true
             };
-            return spawnCard.DoSpawn(center + new Vector3(random.Next(-25, 25), 10f, random.Next(-25, 25)), Quaternion.identity, spawnRequest);
+
+            //Create a range around the player where enemies spawn to protect from instant deaths
+            Vector3 randomizedVector = new Vector3(random.Next(-25, 25), 0, random.Next(-25, 25));
+            Vector3 position = center + new Vector3(
+                randomizedVector.x >= 0 ? Mathf.Clamp(randomizedVector.x, 5, 25) : Mathf.Clamp(randomizedVector.x, -5, -25),
+                10f,
+                randomizedVector.z >= 0 ? Mathf.Clamp(randomizedVector.z, 5, 25) : Mathf.Clamp(randomizedVector.z, -5, -25));
+            return spawnCard.DoSpawn(position, Quaternion.identity, spawnRequest);
         }
 
         //Rolls and drop tables (mostly obsolete)
