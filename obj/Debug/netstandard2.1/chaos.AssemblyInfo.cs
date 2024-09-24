@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("chaos")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+476fc46ddbab9538a5a77b574b1dda616bb3c5f7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+42ee5e2408f300f848f4556015a0ceba01f11039")]
 [assembly: System.Reflection.AssemblyProductAttribute("chaos")]
 [assembly: System.Reflection.AssemblyTitleAttribute("chaos")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

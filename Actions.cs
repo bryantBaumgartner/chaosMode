@@ -249,38 +249,33 @@ namespace ChaosMode
             try
             {
                 //Check to see if this needs to scale anymore
-                PlayerCharacterMasterController[] players = PlayerCharacterMasterController.instances;
-                int count = reps / players.Count;
-                loop = count = count <= 0 ? 1 : count;
+                int count = reps;
+                var players = PlayerCharacterMasterController.instances;
 
-                //RATHER THAN GET A FLAT COUNT AND SPAWN PER PLAYER
-                //DIVIDE THE COUNT BY PLAYERS(ROUND IT) AND THEN
-                //LOOP THROUGH EACH PLAYER AND LOWER THE COUNT BY 1 EACH TIME
-                
                 //Addressable Resource loading
                 CharacterSpawnCard spawnCard = null;
                 spawnCard = Addressables.LoadAssetAsync<CharacterSpawnCard>(enemyType.location).WaitForCompletion();
 
-                foreach (PlayerCharacterMasterController player in PlayerCharacterMasterController.instances)
+                for (int i = 0; i < Mathf.Clamp(count / players.Count, 1, maxEnemies.Value); i++)
                 {
-                    if (count-- <= 0) break;
-                    
-                    //Legacy spawn system
-                    GameObject spawnedInstance = SpawnEnemy(spawnCard, player.master.GetBody().transform.position).spawnedInstance;
-
-                    if (getElement & spawnedInstance)
+                    foreach (PlayerCharacterMasterController player in players)
                     {
-                        EquipOneElite(spawnedInstance.GetComponent<CharacterMaster>().inventory, elite);
-                        elementName = elite.prefix;
-                        count = Mathf.Clamp(count - 1, 1, 50);
-                    }
-                    instance.StartCoroutine(eventing.CheckIfEnemyDied(spawnedInstance, (int)enemyType.rewardBase));
-                }
-                Chat.SendBroadcastChat(new Chat.SimpleChatMessage
-                {
-                    baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Summoning " + loop + (getElement ? " " + elementName + " " : " ") + enemyType.name + (loop > 1 ? "s" : "") + "!</color>"
-                });
+                        //Legacy spawn system
+                        GameObject spawnedInstance = SpawnEnemy(spawnCard, player.master.GetBody().transform.position).spawnedInstance;
 
+                        if (getElement & spawnedInstance)
+                        {
+                            EquipOneElite(spawnedInstance.GetComponent<CharacterMaster>().inventory, elite);
+                            elementName = elite.prefix;
+                            i++;
+                        }
+                        instance.StartCoroutine(eventing.CheckIfEnemyDied(spawnedInstance, (int)enemyType.rewardBase));
+                    }
+                    Chat.SendBroadcastChat(new Chat.SimpleChatMessage
+                    {
+                        baseToken = "<color=#bb0011>[CHAOS] <color=#ff0000>Summoning " + loop + (getElement ? " " + elementName + " " : " ") + enemyType.name + (loop > 1 ? "s" : "") + "!</color>"
+                    });
+                }
             }
             catch
             {
