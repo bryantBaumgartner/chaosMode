@@ -437,12 +437,12 @@ namespace ChaosMode
         }
         public static int EventDropTable()
         {
-            //In order, Jly > ElParent > Mith > Friend > Transport > Teleporter > Gold > Portal
+            //In order, Jly > ElParent > Mith > Friend > Gold >
             //Purge > Order > Corrupted > Voidling
-            List<int> weights = new List<int>() { 10, 10, 5, 20, 5, 15 }; // Basic weights
+            List<int> weights = new List<int>() { 10, 6, 6, 15, 10 }; // Basic weights
             if (purgeRate.Value > 0) weights.Add(3);
             if (enableOrder.Value) weights.Add(2);
-            if (expansion1) weights.AddRange(new List<int>() { 5, 5 });
+            if (expansion1) weights.AddRange(new List<int>() { 8, 4 });
 
             int response = CreateDropTable(weights.ToArray());
             System.Console.WriteLine("[CHAOS] event return is {0}", response);

@@ -23,7 +23,8 @@ namespace ChaosMode
 
         private static int oldTimer;
         public static float directorValue;
-        private static bool initialized, spawning, expansion1, expansion2;
+        private static bool initialized, spawning;
+        public static bool expansion1, expansion2;
 
         public void Awake()
         {
