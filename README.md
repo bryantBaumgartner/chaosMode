@@ -60,6 +60,9 @@ CorruptRate | 0 - 100 | 10 | The weighted likelyhood that a void item will be ro
 If you have questions or problems, you can leave them in the [issues](https://github.com/bryantBaumgartner/chaosMode/issues) or reach out to me on Discord at username `pocket_squid`, display name `Pocket`, formerly `Pocket#4156` either through DMs or the [RoR2 Modding Discord](https://discord.gg/JDbYRZCGbs). I'm pretty good about responding to messages.
 
 # Changelog
+4.0.0
++ Alloyed Collective Compatibility! 
+
 3.0.0
 + Seekers of the Storm Compatibility! 
 + New enemies can spawn.
