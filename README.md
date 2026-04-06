@@ -8,7 +8,7 @@ As of patch 2.1.0 Chaos Mode works with the `Survivors of The Void Expansion!`
 # Multiplayer
 In order to use the mod in multiplayer you can either
 + Ensure all clients in the lobby have matching versions of the mod.
-+ Set the config setting `ArtifactMode` to `False` on the host client. The mod will automatically run in the background.
++ (Recommended for multiplayer) Set the config setting `ArtifactMode` to `False` on the host client. The mod will automatically run in the background.
 	+ You cannot currently disable the mod with this method without resetting the game.
 
 # Configuration
